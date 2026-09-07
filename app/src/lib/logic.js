@@ -4,8 +4,9 @@ import { CARDS } from '../data/flashcards.js';
 import { BADGE_DEFS } from '../data/badges.js';
 import { QUOTES } from '../data/quotes.js';
 import { today, dayIndex } from './dates.js';
+import { readStoredState, writeStoredState, STORAGE_KEY } from './dataStore.js';
 
-export const STORAGE_KEY = 'htet-prep-v1';
+export { STORAGE_KEY };
 
 export function seedState() {
   const seedDay = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
@@ -47,22 +48,18 @@ export function seedState() {
 
 export function loadState() {
   const base = seedState();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return Object.assign(base, JSON.parse(raw));
-  } catch (e) { /* ignore corrupt storage */ }
+  const stored = readStoredState();
+  if (stored) return Object.assign(base, stored);
   return base;
 }
 
 export function saveState(state) {
-  try {
-    const s = Object.assign({}, state, {
-      running: false,
-      quizStage: state.quizStage === 'active' ? 'setup' : state.quizStage,
-      quiz: null
-    });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  } catch (e) { /* storage unavailable */ }
+  const s = Object.assign({}, state, {
+    running: false,
+    quizStage: state.quizStage === 'active' ? 'setup' : state.quizStage,
+    quiz: null
+  });
+  writeStoredState(s);
 }
 
 export function focusMins(s) { return Math.max(1, Number(s.pomodoroMinutes ?? 25)); }

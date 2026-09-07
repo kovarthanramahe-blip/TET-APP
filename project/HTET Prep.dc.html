@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="_ds/classical-cb8cf289-c41d-4cdf-8052-e1a5d40571a1/styles.css">
+<script src="_ds/classical-cb8cf289-c41d-4cdf-8052-e1a5d40571a1/_ds_bundle.js"></script>
+<style>
+  :root{ --accent-ink: var(--color-accent-700); }
+  :root[data-theme="dark"]{
+    --color-bg:#1a1918; --color-surface:#252321; --color-text:#efe9e0;
+    --color-divider: color-mix(in srgb, #efe9e0 20%, transparent);
+    --accent-ink: var(--color-accent-300);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.5); --shadow-md: 0 3px 10px rgba(0,0,0,.45);
+  }
+  html[data-theme="dark"] body, html[data-theme="light"] body{ background: var(--color-bg) !important; color: var(--color-text) !important; }
+  body{ background: var(--color-bg); color: var(--color-text); }
+  input, textarea, select, button { font-family: var(--font-body); }
+  @keyframes htetPulse { 0%,100%{opacity:.55} 50%{opacity:1} }
+</style>
+</helmet>
+<div style="min-height:100vh;background:var(--color-bg);color:var(--color-text);display:flex;flex-wrap:wrap;align-items:stretch">
+
+  <aside style="flex:0 0 232px;min-width:200px;border-right:1px solid var(--color-divider);padding:var(--space-6) var(--space-4);display:flex;flex-direction:column;gap:var(--space-6)">
+    <div>
+      <div style="font-family:var(--font-heading);font-size:26px;line-height:1.05;letter-spacing:-0.02em">HTET<br>Preparation</div>
+      <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-top:6px;color:var(--accent-ink);font-feature-settings:'tnum'">Haryana TET · Study Desk</div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="8">
+        <button type="button" onClick="{{ item.go }}" style="{{ item.style }}">
+          <span>{{ item.label }}</span>
+          <span style="font-size:11px;font-feature-settings:'tnum';opacity:.75">{{ item.badge }}</span>
+        </button>
+      </sc-for>
+    </nav>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:var(--space-3)">
+      <div style="border-top:1px solid var(--color-divider);padding-top:var(--space-3)">
+        <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.6;margin-bottom:4px">Exam level</div>
+        <sc-for list="{{ levelOptions }}" as="lv" hint-placeholder-count="3">
+          <button type="button" onClick="{{ lv.go }}" style="{{ lv.style }}">{{ lv.label }}</button>
+        </sc-for>
+      </div>
+      <button type="button" class="btn btn-secondary" onClick="{{ toggleTheme }}" style="justify-content:space-between">
+        <span>{{ themeLabel }}</span><span style="opacity:.6;font-size:12px">theme</span>
+      </button>
+      <button type="button" class="btn btn-secondary" onClick="{{ resetProgress }}" style="{{ resetStyle }}">{{ resetLabel }}</button>
+      <p style="font-size:11px;opacity:.6;margin:0;line-height:1.4">{{ resetNote }}</p>
+    </div>
+  </aside>
+
+  <main style="flex:1 1 560px;min-width:320px;padding:var(--space-6) var(--space-8);max-width:1180px">
+
+    <header style="display:flex;flex-wrap:wrap;gap:var(--space-4);align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--color-divider);padding-bottom:var(--space-3);margin-bottom:var(--space-6)">
+      <div>
+        <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.6">{{ viewKicker }}</div>
+        <h2 style="margin:2px 0 0">{{ viewTitle }}</h2>
+      </div>
+      <div style="display:flex;gap:var(--space-6);text-align:right;font-feature-settings:'tnum'">
+        <div>
+          <div style="font-family:var(--font-heading);font-size:24px">{{ streak }}</div>
+          <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.6">day streak</div>
+        </div>
+        <div>
+          <div style="font-family:var(--font-heading);font-size:24px">{{ totalHours }}</div>
+          <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.6">hours logged</div>
+        </div>
+      </div>
+    </header>
+
+    <sc-if value="{{ showQuoteBar }}" hint-placeholder-val="{{ true }}">
+      <p style="font-family:var(--font-heading);font-size:19px;font-style:italic;border-left:2px solid var(--color-accent);padding-left:var(--space-3);margin:0 0 var(--space-6);max-width:70ch">{{ quoteOfDay }}</p>
+    </sc-if>
+
+    <!-- ════════ DASHBOARD ════════ -->
+    <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+      <section style="display:flex;flex-direction:column;gap:var(--space-8)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--space-4)">
+          <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+            <div class="card" style="padding:var(--space-4)">
+              <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.6">{{ s.label }}</div>
+              <div style="font-family:var(--font-heading);font-size:38px;line-height:1.1;font-weight:400;font-feature-settings:'tnum';margin-top:4px">{{ s.value }}</div>
+              <div style="font-size:12px;opacity:.65">{{ s.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--space-8)">
+          <div>
+            <h4>Last seven days</h4>
+            <hr class="hr" style="margin:var(--space-2) 0 var(--space-4)">
+            <div style="display:flex;align-items:flex-end;gap:var(--space-3);height:150px">
+              <sc-for list="{{ chart }}" as="c" hint-placeholder-count="7">
+                <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%">
+                  <div style="font-size:11px;font-feature-settings:'tnum';opacity:.7">{{ c.mins }}</div>
+                  <div style="{{ c.barStyle }}"></div>
+                  <div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.6">{{ c.day }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <h4>Mastery heatmap</h4>
+            <hr class="hr" style="margin:var(--space-2) 0 var(--space-4)">
+            <div style="display:flex;flex-wrap:wrap;gap:4px">
+              <sc-for list="{{ heatCells }}" as="h" hint-placeholder-count="24">
+                <div title="{{ h.title }}" style="{{ h.style }}"></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:var(--space-4);margin-top:var(--space-3);font-size:12px;opacity:.75">
+              <sc-for list="{{ heatLegend }}" as="l" hint-placeholder-count="4">
+                <span style="display:inline-flex;align-items:center;gap:6px"><i style="{{ l.style }}"></i>{{ l.label }}</span>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--space-8)">
+          <div>
+            <h4>Today's agenda</h4>
+            <hr class="hr" style="margin:var(--space-2) 0 var(--space-3)">
+            <sc-for list="{{ agenda }}" as="t" hint-placeholder-count="3">
+              <div style="display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-2) 0;border-bottom:1px solid var(--color-divider)">
+                <button type="button" onClick="{{ t.toggle }}" style="{{ t.boxStyle }}">{{ t.mark }}</button>
+                <div style="flex:1">
+                  <div style="{{ t.titleStyle }}">{{ t.title }}</div>
+                  <div style="font-size:12px;opacity:.65;font-feature-settings:'tnum'">{{ t.meta }}</div>
+                </div>
+                <span class="tag tag-outline" style="{{ t.priStyle }}">{{ t.priority }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div>
+            <h4>Course progress</h4>
+            <hr class="hr" style="margin:var(--space-2) 0 var(--space-3)">
+            <sc-for list="{{ courseProgress }}" as="m" hint-placeholder-count="5">
+              <div style="padding:var(--space-2) 0">
+                <div style="display:flex;justify-content:space-between;gap:var(--space-3);font-size:14px">
+                  <span>{{ m.name }}</span>
+                  <span style="font-feature-settings:'tnum';opacity:.7">{{ m.label }}</span>
+                </div>
+                <div style="height:3px;background:var(--color-divider);margin-top:6px">
+                  <div style="{{ m.fillStyle }}"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ════════ STUDY SESSIONS ════════ -->
+    <sc-if value="{{ isStudy }}" hint-placeholder-val="{{ true }}">
+      <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--space-8);align-items:start">
+        <div class="card" style="padding:var(--space-8);text-align:center">
+          <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink)">{{ phaseLabel }}</div>
+          <div style="font-family:var(--font-heading);font-size:96px;line-height:1;font-weight:400;font-feature-settings:'tnum';margin:var(--space-4) 0">{{ timerDisplay }}</div>
+          <div style="height:2px;background:var(--color-divider);margin-bottom:var(--space-6)">
+            <div style="{{ timerFillStyle }}"></div>
+          </div>
+          <div style="display:flex;gap:var(--space-2);justify-content:center;flex-wrap:wrap">
+            <button type="button" class="btn btn-primary" onClick="{{ toggleTimer }}" style="min-width:110px">{{ runLabel }}</button>
+            <button type="button" class="btn btn-secondary" onClick="{{ resetTimer }}">Reset</button>
+            <button type="button" class="btn btn-secondary" onClick="{{ skipPhase }}">Skip phase</button>
+          </div>
+          <div style="display:flex;gap:var(--space-2);justify-content:center;margin-top:var(--space-6)">
+            <sc-for list="{{ modeOptions }}" as="m" hint-placeholder-count="3">
+              <button type="button" onClick="{{ m.go }}" style="{{ m.style }}">{{ m.label }}</button>
+            </sc-for>
+          </div>
+          <p style="font-size:13px;opacity:.7;margin:var(--space-6) 0 0">{{ pomodoroNote }}</p>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:var(--space-6)">
+          <div>
+            <h4>Log a session by hand</h4>
+            <hr class="hr" style="margin:var(--space-2) 0 var(--space-3)">
+            <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:flex-end">
+              <div class="field" style="flex:2 1 160px"><label>What did you study?</label>
+                <input class="input" type="text" value="{{ logLabel }}" onChange="{{ setLogLabel }}" placeholder="e.g. Piaget's stages">
+              </div>
+              <div class="field" style="flex:0 1 100px"><label>Minutes</label>
+                <input class="input" type="number" value="{{ logMinutes }}" onChange="{{ setLogMinutes }}">
+              </div>
+              <button type="button" class="btn btn-primary" onClick="{{ addManualLog }}">Add</button>
+            </div>
+          </div>
+          <div>
+            <h4>Session log</h4>
+            <hr class="hr" style="margin:var(--space-2) 0 var(--space-3)">
+            <table class="table" style="width:100%">
+              <thead><tr><th style="text-align:left">Session</th><th style="text-align:left">When</th><th style="text-align:right">Min</th></tr></thead>
+              <tbody>
+                <sc-for list="{{ sessionRows }}" as="r" hint-placeholder-count="5">
+                  <tr><td>{{ r.label }}</td><td style="opacity:.7">{{ r.when }}</td><td style="text-align:right;font-feature-settings:'tnum'">{{ r.mins }}</td></tr>
+                </sc-for>
+              </tbody>
+            </table>
+            <p style="font-size:12px;opacity:.6;margin-top:var(--space-3)">{{ sessionSummary }}</p>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ════════ SYLLABUS ════════ -->
+    <sc-if value="{{ isSyllabus }}" hint-placeholder-val="{{ true }}">
+      <section style="display:flex;flex-direction:column;gap:var(--space-6)">
+        <p style="max-width:72ch;opacity:.8;margin:0">Course → module → topic → sub-topic. Tap a topic to cycle its confidence: needs work, moderate, mastered. The heatmap and dashboard read from these marks.</p>
+        <sc-for list="{{ syllabusModules }}" as="mod" hint-placeholder-count="5">
+          <div class="card" style="padding:var(--space-4) var(--space-6)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-4);flex-wrap:wrap">
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink);font-feature-settings:'tnum'">{{ mod.kicker }}</div>
+                <h4 style="margin:2px 0 0">{{ mod.name }}</h4>
+              </div>
+              <div style="font-size:12px;opacity:.7;font-feature-settings:'tnum'">{{ mod.label }}</div>
+            </div>
+            <hr class="hr" style="margin:var(--space-3) 0">
+            <div style="display:flex;flex-direction:column;gap:var(--space-2)">
+              <sc-for list="{{ mod.topics }}" as="tp" hint-placeholder-count="5">
+                <div style="display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap">
+                  <button type="button" onClick="{{ tp.cycle }}" style="{{ tp.dotStyle }}"></button>
+                  <div style="flex:1 1 220px">
+                    <div style="font-size:14px">{{ tp.name }}</div>
+                    <div style="font-size:12px;opacity:.6">{{ tp.sub }}</div>
+                  </div>
+                  <button type="button" onClick="{{ tp.cycle }}" style="{{ tp.tagStyle }}">{{ tp.confLabel }}</button>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </section>
+    </sc-if>
+
+    <!-- ════════ TASKS ════════ -->
+    <sc-if value="{{ isTasks }}" hint-placeholder-val="{{ true }}">
+      <section style="display:flex;flex-direction:column;gap:var(--space-6)">
+        <div class="card" style="padding:var(--space-4) var(--space-6);display:flex;gap:var(--space-3);flex-wrap:wrap;align-items:flex-end">
+          <div class="field" style="flex:3 1 220px"><label>New task</label>
+            <input class="input" type="text" value="{{ taskDraft }}" onChange="{{ setTaskDraft }}" placeholder="Revise Kohlberg's moral stages">
+          </div>
+          <div class="field" style="flex:1 1 140px"><label>Deadline</label>
+            <input class="input" type="date" value="{{ taskDue }}" onChange="{{ setTaskDue }}">
+          </div>
+          <div class="field" style="flex:1 1 130px"><label>Priority</label>
+            <div style="display:flex;gap:4px">
+              <sc-for list="{{ priorityOptions }}" as="p" hint-placeholder-count="3">
+                <button type="button" onClick="{{ p.go }}" style="{{ p.style }}">{{ p.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary" onClick="{{ addTask }}">Add task</button>
+        </div>
+
+        <div style="display:flex;gap:var(--space-2);flex-wrap:wrap">
+          <sc-for list="{{ taskFilters }}" as="f" hint-placeholder-count="3">
+            <button type="button" onClick="{{ f.go }}" style="{{ f.style }}">{{ f.label }}</button>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+          <sc-for list="{{ taskList }}" as="t" hint-placeholder-count="4">
+            <div class="card" style="padding:var(--space-4);display:flex;gap:var(--space-4);align-items:flex-start">
+              <button type="button" onClick="{{ t.toggle }}" style="{{ t.boxStyle }}">{{ t.mark }}</button>
+              <div style="flex:1">
+                <div style="{{ t.titleStyle }}">{{ t.title }}</div>
+                <div style="display:flex;gap:var(--space-4);flex-wrap:wrap;font-size:12px;opacity:.7;margin-top:2px;font-feature-settings:'tnum'">
+                  <span>{{ t.meta }}</span><span>{{ t.countdown }}</span>
+                </div>
+                <sc-if value="{{ t.showQuote }}" hint-placeholder-val="{{ true }}">
+                  <p style="font-family:var(--font-heading);font-style:italic;font-size:15px;margin:var(--space-2) 0 0;padding-left:var(--space-3);border-left:1px solid var(--color-accent);opacity:.9">{{ t.quote }}</p>
+                </sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+                <span style="{{ t.priStyle }}">{{ t.priority }}</span>
+                <button type="button" class="btn btn-ghost" onClick="{{ t.remove }}" style="font-size:12px">Remove</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ════════ QUIZ ════════ -->
+    <sc-if value="{{ isQuiz }}" hint-placeholder-val="{{ true }}">
+      <section>
+        <sc-if value="{{ quizSetup }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--space-8);align-items:start">
+            <div>
+              <h4>Build a test</h4>
+              <hr class="hr" style="margin:var(--space-2) 0 var(--space-4)">
+              <div class="field" style="margin-bottom:var(--space-4)"><label>Question types</label>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ typeOptions }}" as="t" hint-placeholder-count="4">
+                    <button type="button" onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div class="field" style="margin-bottom:var(--space-4)"><label>Parts of the paper</label>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ partOptions }}" as="p" hint-placeholder-count="5">
+                    <button type="button" onClick="{{ p.go }}" style="{{ p.style }}">{{ p.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div class="field" style="margin-bottom:var(--space-4)"><label>Mode</label>
+                <div style="display:flex;gap:6px">
+                  <sc-for list="{{ examModes }}" as="m" hint-placeholder-count="2">
+                    <button type="button" onClick="{{ m.go }}" style="{{ m.style }}">{{ m.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <button type="button" class="btn btn-primary btn-block" onClick="{{ startQuiz }}">{{ startLabel }}</button>
+              <p style="font-size:12px;opacity:.65;margin-top:var(--space-3)">{{ quizSetupNote }}</p>
+            </div>
+            <div>
+              <h4>Attempt history</h4>
+              <hr class="hr" style="margin:var(--space-2) 0 var(--space-3)">
+              <table class="table" style="width:100%">
+                <thead><tr><th style="text-align:left">Test</th><th style="text-align:left">Mode</th><th style="text-align:right">Score</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ attemptRows }}" as="a" hint-placeholder-count="3">
+                    <tr><td>{{ a.when }}</td><td style="opacity:.7">{{ a.mode }}</td><td style="text-align:right;font-feature-settings:'tnum'">{{ a.score }}</td></tr>
+                  </sc-for>
+                </tbody>
+              </table>
+              <p style="font-size:12px;opacity:.6;margin-top:var(--space-3)">{{ attemptSummary }}</p>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ quizActive }}" hint-placeholder-val="{{ true }}">
+          <div style="max-width:780px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-4);flex-wrap:wrap">
+              <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.65;font-feature-settings:'tnum'">{{ qProgress }}</div>
+              <div style="{{ mockClockStyle }}">{{ mockClock }}</div>
+            </div>
+            <div style="height:2px;background:var(--color-divider);margin:var(--space-3) 0 var(--space-6)"><div style="{{ qProgressFill }}"></div></div>
+            <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink)">{{ qMeta }}</div>
+            <h3 style="margin:var(--space-2) 0 var(--space-6);max-width:60ch;font-weight:400;text-wrap:pretty">{{ qText }}</h3>
+
+            <sc-if value="{{ qHasOptions }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:var(--space-2)">
+                <sc-for list="{{ qOptions }}" as="o" hint-placeholder-count="4">
+                  <button type="button" onClick="{{ o.pick }}" style="{{ o.style }}">
+                    <span style="font-feature-settings:'tnum';opacity:.6;min-width:20px">{{ o.key }}</span>
+                    <span style="flex:1;text-align:left">{{ o.text }}</span>
+                    <span style="font-size:12px;color:var(--accent-ink)">{{ o.flag }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ qIsText }}" hint-placeholder-val="{{ true }}">
+              <div class="field" style="max-width:520px"><label>{{ qInputLabel }}</label>
+                <textarea class="input" value="{{ qTextAnswer }}" onChange="{{ setTextAnswer }}" placeholder="Type your answer"></textarea>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ qShowFeedback }}" hint-placeholder-val="{{ true }}">
+              <div style="{{ qFeedbackStyle }}">
+                <div style="font-family:var(--font-heading);font-size:17px">{{ qFeedbackTitle }}</div>
+                <p style="margin:6px 0 0;font-size:14px">{{ qExplain }}</p>
+              </div>
+            </sc-if>
+
+            <div style="display:flex;gap:var(--space-2);margin-top:var(--space-6);flex-wrap:wrap">
+              <button type="button" class="btn btn-primary" onClick="{{ nextQuestion }}">{{ nextLabel }}</button>
+              <button type="button" class="btn btn-secondary" onClick="{{ abortQuiz }}">Exit test</button>
+              <span style="font-size:12px;opacity:.6;align-self:center">{{ lockNote }}</span>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ quizResult }}" hint-placeholder-val="{{ true }}">
+          <div style="max-width:820px;display:flex;flex-direction:column;gap:var(--space-8)">
+            <div style="display:flex;gap:var(--space-8);flex-wrap:wrap;align-items:flex-end">
+              <div>
+                <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.6">Score</div>
+                <div style="font-family:var(--font-heading);font-size:72px;line-height:1;font-weight:400;font-feature-settings:'tnum'">{{ resPct }}</div>
+              </div>
+              <div style="flex:1 1 220px">
+                <p style="margin:0;font-size:15px">{{ resVerdict }}</p>
+                <p style="margin:var(--space-2) 0 0;font-family:var(--font-heading);font-style:italic;font-size:17px">{{ resQuote }}</p>
+              </div>
+            </div>
+            <div>
+              <h4>Diagnostics by part</h4>
+              <hr class="hr" style="margin:var(--space-2) 0 var(--space-3)">
+              <table class="table" style="width:100%">
+                <thead><tr><th style="text-align:left">Part</th><th style="text-align:right">Correct</th><th style="text-align:right">Asked</th><th style="text-align:right">Accuracy</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{ resByPart }}" as="r" hint-placeholder-count="4">
+                    <tr><td>{{ r.part }}</td><td style="text-align:right;font-feature-settings:'tnum'">{{ r.correct }}</td><td style="text-align:right;font-feature-settings:'tnum'">{{ r.asked }}</td><td style="text-align:right;font-feature-settings:'tnum'">{{ r.pct }}</td></tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h4>Answer review</h4>
+              <hr class="hr" style="margin:var(--space-2) 0 var(--space-3)">
+              <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+                <sc-for list="{{ resReview }}" as="r" hint-placeholder-count="5">
+                  <div style="{{ r.style }}">
+                    <div style="font-size:14px">{{ r.q }}</div>
+                    <div style="font-size:13px;opacity:.8;margin-top:4px">{{ r.yours }}</div>
+                    <div style="font-size:13px;color:var(--accent-ink);margin-top:2px">{{ r.right }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;gap:var(--space-2)">
+              <button type="button" class="btn btn-primary" onClick="{{ backToSetup }}">Build another test</button>
+            </div>
+          </div>
+        </sc-if>
+      </section>
+    </sc-if>
+
+    <!-- ════════ FLASHCARDS ════════ -->
+    <sc-if value="{{ isCards }}" hint-placeholder-val="{{ true }}">
+      <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--space-8);align-items:start">
+        <div>
+          <sc-if value="{{ hasCard }}" hint-placeholder-val="{{ true }}">
+            <div class="card" style="padding:var(--space-8);min-height:280px;display:flex;flex-direction:column;justify-content:center;text-align:center;gap:var(--space-4)">
+              <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink)">{{ cardMeta }}</div>
+              <div style="font-family:var(--font-heading);font-size:27px;line-height:1.2;font-weight:400;text-wrap:pretty">{{ cardFront }}</div>
+              <sc-if value="{{ cardRevealed }}" hint-placeholder-val="{{ true }}">
+                <div>
+                  <hr class="hr">
+                  <p style="margin:0;font-size:15px;text-wrap:pretty">{{ cardBack }}</p>
+                </div>
+              </sc-if>
+            </div>
+            <sc-if value="{{ cardRevealed }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:var(--space-2);margin-top:var(--space-4);flex-wrap:wrap">
+                <sc-for list="{{ gradeButtons }}" as="g" hint-placeholder-count="4">
+                  <button type="button" onClick="{{ g.go }}" style="{{ g.style }}">
+                    <span>{{ g.label }}</span>
+                    <span style="font-size:11px;opacity:.65;font-feature-settings:'tnum'">{{ g.next }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ cardHidden }}" hint-placeholder-val="{{ true }}">
+              <button type="button" class="btn btn-primary btn-block" onClick="{{ revealCard }}" style="margin-top:var(--space-4)">Reveal answer</button>
+            </sc-if>
+          </sc-if>
+          <sc-if value="{{ noCard }}" hint-placeholder-val="{{ true }}">
+            <div class="card" style="padding:var(--space-8);text-align:center">
+              <h4>Queue cleared</h4>
+              <p style="margin:0;opacity:.75">Nothing is due right now. The scheduler will bring these back on their next interval.</p>
+              <button type="button" class="btn btn-secondary" onClick="{{ resetSrs }}" style="margin-top:var(--space-4)">Reset scheduling</button>
+            </div>
+          </sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:var(--space-6)">
+          <div>
+            <h4>Scheduler</h4>
+            <hr class="hr" style="margin:var(--space-2) 0 var(--space-3)">
+            <p style="font-size:13px;opacity:.8;margin:0 0 var(--space-3)">SM-2 spaced repetition. Each grade updates the card's ease factor and pushes the next review out: 1 day, 3 days, then interval × ease.</p>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)">
+              <sc-for list="{{ srsStats }}" as="s" hint-placeholder-count="3">
+                <div>
+                  <div style="font-family:var(--font-heading);font-size:28px;font-feature-settings:'tnum'">{{ s.value }}</div>
+                  <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.6">{{ s.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <h4>Deck</h4>
+            <hr class="hr" style="margin:var(--space-2) 0 var(--space-3)">
+            <table class="table" style="width:100%">
+              <thead><tr><th style="text-align:left">Card</th><th style="text-align:right">Ease</th><th style="text-align:right">Due in</th></tr></thead>
+              <tbody>
+                <sc-for list="{{ deckRows }}" as="d" hint-placeholder-count="6">
+                  <tr><td style="font-size:13px">{{ d.front }}</td><td style="text-align:right;font-feature-settings:'tnum'">{{ d.ease }}</td><td style="text-align:right;font-feature-settings:'tnum'">{{ d.due }}</td></tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ════════ NOTES ════════ -->
+    <sc-if value="{{ isNotes }}" hint-placeholder-val="{{ true }}">
+      <section style="display:grid;grid-template-columns:minmax(180px,240px) 1fr;gap:var(--space-6);align-items:start">
+        <div>
+          <button type="button" class="btn btn-primary btn-block" onClick="{{ addNote }}" style="margin:0 0 var(--space-3)">New note</button>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <sc-for list="{{ noteList }}" as="n" hint-placeholder-count="4">
+              <button type="button" onClick="{{ n.go }}" style="{{ n.style }}">
+                <span style="font-size:14px">{{ n.title }}</span>
+                <span style="font-size:11px;opacity:.6">{{ n.topic }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:flex-end;margin-bottom:var(--space-3)">
+            <div class="field" style="flex:2 1 200px"><label>Title</label>
+              <input class="input" type="text" value="{{ noteTitle }}" onChange="{{ setNoteTitle }}">
+            </div>
+            <div class="field" style="flex:1 1 180px"><label>Attached to</label>
+              <input class="input" type="text" value="{{ noteTopic }}" onChange="{{ setNoteTopic }}" placeholder="Course · module · topic">
+            </div>
+            <button type="button" class="btn btn-secondary" onClick="{{ deleteNote }}">Delete</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--space-4)">
+            <div class="field"><label>Markdown</label>
+              <textarea class="input" value="{{ noteBody }}" onChange="{{ setNoteBody }}" style="min-height:340px;font-size:13px;line-height:1.6"></textarea>
+            </div>
+            <div class="field"><label>Preview</label>
+              <div class="card" style="padding:var(--space-4);min-height:340px">{{ notePreview }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <!-- ════════ BADGES ════════ -->
+    <sc-if value="{{ isBadges }}" hint-placeholder-val="{{ true }}">
+      <section style="display:flex;flex-direction:column;gap:var(--space-8)">
+        <div class="card" style="padding:var(--space-6);display:flex;gap:var(--space-8);flex-wrap:wrap;align-items:center">
+          <div>
+            <div style="font-family:var(--font-heading);font-size:56px;line-height:1;font-feature-settings:'tnum'">{{ streak }}</div>
+            <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.6">consecutive days</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1 1 260px">
+            <sc-for list="{{ streakDots }}" as="d" hint-placeholder-count="14">
+              <div title="{{ d.title }}" style="{{ d.style }}"></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--space-4)">
+          <sc-for list="{{ badges }}" as="b" hint-placeholder-count="8">
+            <div style="{{ b.style }}">
+              <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink)">{{ b.state }}</div>
+              <h4 style="margin:6px 0 2px">{{ b.name }}</h4>
+              <p style="margin:0;font-size:13px;opacity:.8">{{ b.desc }}</p>
+              <div style="height:3px;background:var(--color-divider);margin-top:var(--space-3)"><div style="{{ b.fillStyle }}"></div></div>
+              <div style="font-size:11px;opacity:.6;margin-top:4px;font-feature-settings:'tnum'">{{ b.progress }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-if>
+
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;pomodoroMinutes&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:25,&quot;min&quot;:5,&quot;max&quot;:60,&quot;unit&quot;:&quot;min&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Study timer&quot;},&quot;breakMinutes&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:5,&quot;min&quot;:2,&quot;max&quot;:20,&quot;unit&quot;:&quot;min&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Study timer&quot;},&quot;showQuotes&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motivation&quot;}}">
+class Component extends DCLogic {
+  KEY = 'htet-prep-v1';
+
+  QUOTES = [
+    'The teacher who is not also a student has stopped teaching.',
+    'Small daily gains beat rare heroic efforts.',
+    'You are preparing to shape a classroom — study like it matters.',
+    'Discipline is choosing what you want most over what you want now.',
+    'A page a day is three hundred and sixty-five pages a year.',
+    'Revision is where learning is actually made.',
+    'Do the hard chapter first; the rest is downhill.',
+    'Your future students are counting on today.',
+    'Consistency compounds. Show up again tomorrow.',
+    'Nothing you learn is ever wasted.'
+  ];
+
+  SYLLABUS = {
+    'Level 1 (PRT)': [
+      { name: 'Child Development & Pedagogy', weight: 30, topics: [
+        ['Growth & development — concept and principles', 'Heredity vs environment · stages'],
+        ['Theories of learning', 'Piaget · Vygotsky · Bruner · Kohlberg'],
+        ['Individual differences', 'Intelligence · aptitude · personality'],
+        ['Inclusive education', 'CWSN · learning difficulties · RTE 2009'],
+        ['Assessment & evaluation', 'CCE · formative vs summative · NCF 2005'],
+        ['Motivation & classroom management', 'Reinforcement · discipline · group dynamics']
+      ]},
+      { name: 'Language I — Hindi', weight: 15, topics: [
+        ['Varn vichar, sandhi, samas', 'Swar/vyanjan · deergh · gun · vriddhi'],
+        ['Alankar and ras', 'Anupras · upma · rupak · nav ras'],
+        ['Muhavare and lokoktiyan', 'Idioms and proverbs in context'],
+        ['Apathit gadyansh', 'Unseen passage comprehension'],
+        ['Hindi shikshan vidhi', 'Teaching methods and TLM']
+      ]},
+      { name: 'Language II — English', weight: 15, topics: [
+        ['Tenses and modals', 'Sequence of tenses · usage errors'],
+        ['Articles and prepositions', 'High-frequency HTET error patterns'],
+        ['Voice and narration', 'Active/passive · direct/indirect'],
+        ['Vocabulary and idioms', 'Synonyms · antonyms · one-word substitution'],
+        ['Unseen passage', 'Inference and vocabulary in context'],
+        ['English pedagogy', 'LSRW skills · remedial teaching']
+      ]},
+      { name: 'General Studies', weight: 30, topics: [
+        ['Quantitative aptitude', 'Number system · percentage · time-speed'],
+        ['Reasoning and mental ability', 'Series · analogy · coding-decoding'],
+        ['Haryana GK — history & culture', 'Formation 1966 · festivals · folk arts'],
+        ['Haryana GK — geography & economy', 'Rivers · districts · agriculture'],
+        ['Indian polity and current affairs', 'Constitution · schemes · education policy'],
+        ['Teaching aptitude', 'Communication · professional ethics']
+      ]},
+      { name: 'Subject — Maths & EVS', weight: 60, topics: [
+        ['Number system and operations', 'Place value · factors · HCF/LCM'],
+        ['Fractions, decimals, percentage', 'Word problems'],
+        ['Geometry and measurement', 'Shapes · perimeter · area · volume'],
+        ['Data handling', 'Pictographs · bar graphs · averages'],
+        ['Plants, animals and the body', 'EVS living world'],
+        ['Environment and resources', 'Water · air · pollution · conservation']
+      ]}
+    ],
+    'Level 2 (TGT)': [
+      { name: 'Child Development & Pedagogy', weight: 30, topics: [
+        ['Adolescent development', 'Physical · cognitive · socio-emotional'],
+        ['Learning theories applied', 'Constructivism · social learning'],
+        ['Guidance and counselling', 'Adjustment · school counselling'],
+        ['Inclusive education', 'Diversity · differentiated instruction'],
+        ['Assessment for learning', 'Rubrics · question paper design'],
+        ['Action research', 'Reflective practice']
+      ]},
+      { name: 'Language I — Hindi', weight: 15, topics: [
+        ['Vyakaran — sandhi, samas, karak', 'Advanced grammar'],
+        ['Kavya and alankar', 'Chhand · ras · alankar'],
+        ['Rachnatmak lekhan', 'Patra · nibandh'],
+        ['Apathit gadyansh', 'Comprehension'],
+        ['Bhasha shikshan', 'Pedagogy of Hindi at TGT level']
+      ]},
+      { name: 'Language II — English', weight: 15, topics: [
+        ['Advanced grammar', 'Clauses · conditionals · concord'],
+        ['Transformation of sentences', 'Synthesis · reported speech'],
+        ['Comprehension and precis', 'Summarising skills'],
+        ['Vocabulary building', 'Phrasal verbs · confusables'],
+        ['Pedagogy of English', 'Communicative approach']
+      ]},
+      { name: 'General Studies', weight: 30, topics: [
+        ['Quantitative aptitude', 'Ratio · profit-loss · mensuration'],
+        ['Logical reasoning', 'Syllogism · blood relations · direction'],
+        ['Haryana GK', 'Polity · schemes · sports · culture'],
+        ['National and international affairs', 'Last 12 months'],
+        ['Computer and educational technology', 'ICT in teaching']
+      ]},
+      { name: 'Subject — Social Studies', weight: 60, topics: [
+        ['Ancient and medieval India', 'Sources · empires · Panipat battles'],
+        ['Modern India and national movement', '1857 to 1947'],
+        ['Physical and Indian geography', 'Landforms · climate · resources'],
+        ['Indian Constitution and polity', 'Rights · duties · federalism'],
+        ['Economics fundamentals', 'Development · budget · planning'],
+        ['Pedagogy of social science', 'Map work · projects · sources']
+      ]}
+    ],
+    'Level 3 (PGT)': [
+      { name: 'Child Development & Pedagogy', weight: 30, topics: [
+        ['Senior-secondary learner psychology', 'Identity · career choice'],
+        ['Advanced learning theories', 'Information processing · metacognition'],
+        ['Educational measurement', 'Reliability · validity · item analysis'],
+        ['Inclusive and value education', 'Equity · life skills'],
+        ['Curriculum and NEP 2020', 'Design · vocationalisation'],
+        ['Educational management', 'Leadership · school administration']
+      ]},
+      { name: 'Language I — Hindi', weight: 15, topics: [
+        ['Vyakaran samagra', 'Full grammar revision'],
+        ['Hindi sahitya ka itihas', 'Kaal vibhajan · pramukh kavi'],
+        ['Alankar, chhand, ras', 'Kavya shastra'],
+        ['Apathit gadyansh', 'Analytical reading'],
+        ['Bhasha shikshan shastra', 'PGT-level pedagogy']
+      ]},
+      { name: 'Language II — English', weight: 15, topics: [
+        ['Grammar and usage', 'Error spotting at advanced level'],
+        ['Literary devices', 'Figures of speech · prosody'],
+        ['Comprehension and interpretation', 'Critical reading'],
+        ['Academic writing', 'Report · argument'],
+        ['ELT approaches', 'Task-based · post-method']
+      ]},
+      { name: 'General Studies', weight: 30, topics: [
+        ['Quantitative aptitude', 'Data interpretation · algebra'],
+        ['Analytical reasoning', 'Puzzles · statements & assumptions'],
+        ['Haryana GK in depth', 'Administration · economy · history'],
+        ['Current affairs and policy', 'Education policy · schemes'],
+        ['Research and ICT literacy', 'Digital pedagogy']
+      ]},
+      { name: 'Subject specialisation (PGT)', weight: 60, topics: [
+        ['Core concepts — unit I', 'Foundational theory of the subject'],
+        ['Core concepts — unit II', 'Applied and analytical topics'],
+        ['Advanced problems and cases', 'Higher-order questions'],
+        ['Recent developments', 'Contemporary scholarship'],
+        ['Subject pedagogy', 'Lab/field work · project method'],
+        ['Previous-year analysis', 'Ten-year question trends']
+      ]}
+    ]
+  };
+
+  BANK = [
+    { id:'q1', type:'mcq', part:'Child Development & Pedagogy', q:'In which Piagetian stage does a child first develop object permanence?', options:['Sensorimotor','Pre-operational','Concrete operational','Formal operational'], answer:0, explain:'Object permanence appears late in the sensorimotor stage (0–2 years).' },
+    { id:'q2', type:'mcq', part:'Child Development & Pedagogy', q:"Vygotsky's Zone of Proximal Development refers to the gap between", options:['Two children of the same age','What a learner can do alone and what they can do with guidance','Intelligence and aptitude','Formative and summative assessment'], answer:1, explain:'The ZPD is the distance between independent performance and assisted performance.' },
+    { id:'q3', type:'tf', part:'Child Development & Pedagogy', q:"Kohlberg's theory is primarily concerned with moral development.", options:['True','False'], answer:0, explain:'Kohlberg proposed six stages across three levels of moral reasoning.' },
+    { id:'q4', type:'mcq', part:'Child Development & Pedagogy', q:'NCF 2005 recommends that learning be primarily', options:['Rote and text-bound','Constructivist and child-centred','Teacher-dominated','Examination-driven'], answer:1, explain:'NCF 2005 shifted the emphasis to constructivist, experience-based learning.' },
+    { id:'q5', type:'mcq', part:'Language II — English', q:'He has been living in Rohtak ___ 2010.', options:['for','since','from','by'], answer:1, explain:'"Since" is used with a point in time; "for" with a duration.' },
+    { id:'q6', type:'fib', part:'Language II — English', q:'Change to passive voice: "She writes a letter." → A letter ___ written by her.', answer:'is', explain:'Simple present passive takes is/are + past participle.' },
+    { id:'q7', type:'mcq', part:'Language I — Hindi', q:'"Vidyalaya" (Vidya + Alaya) is an example of which sandhi?', options:['Deergh sandhi','Gun sandhi','Vriddhi sandhi','Yan sandhi'], answer:0, explain:'A + A = AA, so it is deergh (long-vowel) sandhi.' },
+    { id:'q8', type:'mcq', part:'General Studies', q:'Haryana attained statehood on', options:['1 November 1956','1 November 1966','26 January 1950','15 August 1947'], answer:1, explain:'Haryana was carved out of Punjab on 1 November 1966.' },
+    { id:'q9', type:'mcq', part:'General Studies', q:'The HCF of 12 and 18 is', options:['2','3','6','36'], answer:2, explain:'12 = 2²×3, 18 = 2×3²; common factors give 6.' },
+    { id:'q10', type:'mcq', part:'General Studies', q:'A train covers 60 km in 45 minutes. Its speed is', options:['75 km/h','80 km/h','85 km/h','90 km/h'], answer:1, explain:'60 ÷ 0.75 h = 80 km/h.' },
+    { id:'q11', type:'mcq', part:'General Studies', q:'Complete the series: 2, 6, 12, 20, ___', options:['24','28','30','32'], answer:2, explain:'Differences run 4, 6, 8, 10 → 20 + 10 = 30.' },
+    { id:'q12', type:'fib', part:'General Studies', q:'The sum of the interior angles of a triangle is ___ degrees.', answer:'180', explain:'A fundamental result of Euclidean geometry.' },
+    { id:'q13', type:'tf', part:'General Studies', q:'HTET is conducted by the Board of School Education Haryana, Bhiwani.', options:['True','False'], answer:0, explain:'BSEH Bhiwani conducts HTET on behalf of the state.' },
+    { id:'q14', type:'mcq', part:'Subject', q:'The Third Battle of Panipat was fought in', options:['1526','1556','1761','1857'], answer:2, explain:'Marathas were defeated by Ahmad Shah Abdali in 1761.' },
+    { id:'q15', type:'mcq', part:'Subject', q:'In the number 4,507, the place value of 5 is', options:['5','50','500','5000'], answer:2, explain:'5 sits in the hundreds place.' },
+    { id:'q16', type:'sa', part:'Child Development & Pedagogy', q:'In one or two lines, define formative assessment.', answer:'Assessment conducted during learning to give feedback and shape teaching.', explain:'Formative assessment is continuous, diagnostic and feeds back into instruction.' }
+  ];
+
+  CARDS = [
+    ['Piaget — four stages, in order', 'Sensorimotor (0–2) · Pre-operational (2–7) · Concrete operational (7–11) · Formal operational (11+)', 'Child Development'],
+    ['Kohlberg — three levels', 'Pre-conventional · Conventional · Post-conventional (two stages each)', 'Child Development'],
+    ['RTE Act year and age range', '2009 · free and compulsory education for ages 6–14', 'Polity'],
+    ['Haryana — formation date and capital', '1 November 1966 · Chandigarh', 'Haryana GK'],
+    ['Rivers of Haryana', 'Yamuna · Ghaggar · Markanda · Saraswati (seasonal)', 'Haryana GK'],
+    ['CCE — what the two Cs stand for', 'Continuous and Comprehensive Evaluation — scholastic plus co-scholastic', 'Assessment'],
+    ['Passive voice — simple present formula', 'Object + is/are + past participle + by + subject', 'English'],
+    ['Deergh sandhi rule', 'Similar vowels combine into their long form: a + a = aa', 'Hindi'],
+    ['NEP 2020 school structure', '5 + 3 + 3 + 4 — foundational, preparatory, middle, secondary', 'Policy'],
+    ['HTET paper pattern', '150 MCQs · 150 marks · 150 minutes · no negative marking', 'Exam craft']
+  ];
+
+  BADGE_DEFS = [
+    { name: 'First Session', desc: 'Log your first study session.', metric: 'sessions', target: 1 },
+    { name: 'Ten Hours In', desc: 'Ten hours of tracked study.', metric: 'hours', target: 10 },
+    { name: 'Fifty Hours In', desc: 'Fifty hours of tracked study.', metric: 'hours', target: 50 },
+    { name: 'Week of Discipline', desc: 'A seven-day unbroken streak.', metric: 'streak', target: 7 },
+    { name: 'Month of Discipline', desc: 'A thirty-day unbroken streak.', metric: 'streak', target: 30 },
+    { name: 'Qualifier', desc: 'Score 60% or more on any test.', metric: 'best', target: 60 },
+    { name: 'Distinction', desc: 'Score 85% or more on any test.', metric: 'best', target: 85 },
+    { name: 'Green Ten', desc: 'Mark ten topics as mastered.', metric: 'mastered', target: 10 },
+    { name: 'Task Machine', desc: 'Complete twenty study tasks.', metric: 'tasksDone', target: 20 },
+    { name: 'Card Shark', desc: 'Grade fifty flashcard reviews.', metric: 'reviews', target: 50 }
+  ];
+
+  today() { return new Date().toISOString().slice(0, 10); }
+  dayIndex(d) { return Math.floor(new Date((d || this.today()) + 'T00:00:00').getTime() / 86400000); }
+
+  state = this.load();
+
+  load() {
+    const seedDay = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+    const base = {
+      view: 'dash', theme: 'light', level: 'Level 1 (PRT)',
+      confidence: {},
+      sessions: [
+        { label: 'Piaget & Vygotsky revision', mins: 50, date: seedDay(-1) },
+        { label: 'Haryana GK — districts', mins: 25, date: seedDay(-1) },
+        { label: 'English grammar drill', mins: 75, date: seedDay(-2) },
+        { label: 'Quantitative aptitude set', mins: 40, date: seedDay(-3) },
+        { label: 'Hindi vyakaran', mins: 30, date: seedDay(-4) },
+        { label: 'Mock exam — Part I', mins: 60, date: seedDay(0) }
+      ],
+      tasks: [
+        { id: 't1', title: 'Finish Child Development ch. 3 — learning theories', priority: 'High', due: seedDay(1), done: false },
+        { id: 't2', title: 'Attempt 30 questions of Haryana GK', priority: 'Medium', due: seedDay(2), done: false },
+        { id: 't3', title: 'Revise passive voice and narration', priority: 'Low', due: seedDay(4), done: false },
+        { id: 't4', title: 'Full-length mock exam under timed conditions', priority: 'High', due: seedDay(6), done: false }
+      ],
+      notes: [
+        { id: 'n1', title: 'Learning theories cheat sheet', topic: 'CDP · Theories of learning', body: '# Learning theories\n\n**Piaget** — cognitive constructivism, four stages, *schema* / assimilation / accommodation.\n\n**Vygotsky** — social constructivism.\n\n- ZPD: gap between solo and assisted performance\n- Scaffolding fades as competence grows\n- Language precedes thought\n\n**Bruner** — spiral curriculum; enactive, iconic, symbolic.\n\n> HTET favours applied questions: given a classroom scene, name the theorist.' },
+        { id: 'n2', title: 'Haryana GK — quick facts', topic: 'General Studies · Haryana GK', body: '# Haryana quick facts\n\n- Formed **1 November 1966**\n- Capital: Chandigarh\n- Districts: 22\n- Rivers: Yamuna, Ghaggar, Markanda\n- Folk dance: Ghoomar, Khoria\n\n`HTET tip:` one or two questions almost every year on formation and symbols.' }
+      ],
+      cards: {},
+      attempts: [],
+      reviews: 0,
+      taskFilter: 'Open', taskDraft: '', taskDue: '', taskPriority: 'Medium',
+      logLabel: '', logMinutes: 25,
+      activeNote: 'n1',
+      timerMode: 'Pomodoro 25/5', phase: 'focus', running: false, remaining: 1500, cycles: 0,
+      quizStage: 'setup', quizTypes: ['mcq', 'tf'], quizParts: [], quizMode: 'Practice',
+      quiz: null, qIndex: 0, answers: {}, textAnswer: '', mockLeft: 0, revealed: false,
+      cardIndex: 0, cardRevealed: false
+    };
+    try {
+      const raw = localStorage.getItem('htet-prep-v1');
+      if (raw) return Object.assign(base, JSON.parse(raw));
+    } catch (e) {}
+    return base;
+  }
+
+  save() {
+    try {
+      const s = Object.assign({}, this.state, { running: false, quizStage: this.state.quizStage === 'active' ? 'setup' : this.state.quizStage, quiz: null });
+      localStorage.setItem(this.KEY, JSON.stringify(s));
+    } catch (e) {}
+  }
+
+  componentDidMount() {
+    document.documentElement.dataset.theme = this.state.theme;
+    this.tick = setInterval(() => {
+      const s = this.state;
+      if (s.running && s.remaining > 0) {
+        const r = s.remaining - 1;
+        if (r === 0) this.finishPhase(); else this.setState({ remaining: r });
+      }
+      if (s.quizStage === 'active' && s.quizMode === 'Mock exam' && s.mockLeft > 0) {
+        const m = s.mockLeft - 1;
+        if (m === 0) this.submitQuiz(); else this.setState({ mockLeft: m });
+      }
+    }, 1000);
+  }
+  componentDidUpdate() { document.documentElement.dataset.theme = this.state.theme; this.save(); }
+  componentWillUnmount() { clearInterval(this.tick); }
+
+  focusMins() { return Math.max(1, Number(this.props.pomodoroMinutes ?? 25)); }
+  breakMins() { return Math.max(1, Number(this.props.breakMinutes ?? 5)); }
+  phaseLength(phase) {
+    const m = this.state.timerMode;
+    if (m === 'Stopwatch') return 0;
+    if (m === 'Deep work 50/10') return phase === 'focus' ? 50 * 60 : 10 * 60;
+    return (phase === 'focus' ? this.focusMins() : this.breakMins()) * 60;
+  }
+
+  finishPhase() {
+    const s = this.state;
+    if (s.phase === 'focus') {
+      const mins = Math.round(this.phaseLength('focus') / 60);
+      this.logSession('Pomodoro — ' + (s.timerMode), mins);
+      this.setState({ phase: 'break', remaining: this.phaseLength('break'), cycles: s.cycles + 1, running: true });
+    } else {
+      this.setState({ phase: 'focus', remaining: this.phaseLength('focus'), running: false });
+    }
+  }
+
+  logSession(label, mins) {
+    this.setState(st => ({ sessions: [{ label, mins: Number(mins) || 0, date: this.today() }].concat(st.sessions) }));
+  }
+
+  minutesOn(date) { return this.state.sessions.filter(s => s.date === date).reduce((a, b) => a + b.mins, 0); }
+  totalMinutes() { return this.state.sessions.reduce((a, b) => a + b.mins, 0); }
+  streakCount() {
+    let n = 0;
+    for (let i = 0; i < 400; i++) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+      if (this.minutesOn(d) > 0) n++;
+      else if (i > 0) break;
+    }
+    return n;
+  }
+  modules() { return this.SYLLABUS[this.state.level] || []; }
+  topicKey(m, t) { return this.state.level + '|' + m + '|' + t; }
+  confOf(m, t) { return this.state.confidence[this.topicKey(m, t)] || 0; }
+  confColor(c) {
+    if (c === 1) return '#b3392f';
+    if (c === 2) return '#c28d41';
+    if (c === 3) return '#3f7d4e';
+    return 'var(--color-divider)';
+  }
+  confName(c) { return ['Untouched', 'Needs work', 'Moderate', 'Mastered'][c]; }
+  masteredCount() {
+    let n = 0;
+    this.modules().forEach(m => m.topics.forEach(t => { if (this.confOf(m.name, t[0]) === 3) n++; }));
+    return n;
+  }
+  cardState(i) {
+    const c = this.state.cards[String(i)];
+    return c || { ease: 2.5, interval: 0, reps: 0, due: this.dayIndex() };
+  }
+  dueCards() {
+    const d = this.dayIndex();
+    return this.CARDS.map((c, i) => i).filter(i => this.cardState(i).due <= d);
+  }
+  bestScore() { return this.state.attempts.reduce((a, b) => Math.max(a, b.pct), 0); }
+  quoteFor(i) { return this.QUOTES[Math.abs(i) % this.QUOTES.length]; }
+
+  grade(g) {
+    const idx = this.state.cardIndex;
+    const c = Object.assign({}, this.cardState(idx));
+    if (g === 0) { c.reps = 0; c.interval = 0; c.ease = Math.max(1.3, c.ease - 0.2); }
+    else {
+      c.ease = Math.max(1.3, Math.min(3.0, c.ease + (g === 1 ? -0.15 : g === 2 ? 0 : 0.1)));
+      c.reps += 1;
+      c.interval = c.reps === 1 ? 1 : c.reps === 2 ? 3 : Math.max(1, Math.round(c.interval * c.ease * (g === 1 ? 0.6 : 1)));
+    }
+    c.due = this.dayIndex() + c.interval;
+    const cards = Object.assign({}, this.state.cards, { [String(idx)]: c });
+    this.setState({ cards, reviews: this.state.reviews + 1, cardRevealed: false }, () => this.nextCard());
+  }
+  nextCard() {
+    const due = this.dueCards();
+    this.setState({ cardIndex: due.length ? due[0] : -1, cardRevealed: false });
+  }
+
+  buildQuiz() {
+    const s = this.state;
+    const parts = s.quizParts.length ? s.quizParts : null;
+    let pool = this.BANK.filter(q => s.quizTypes.includes(q.type));
+    if (parts) pool = pool.filter(q => parts.some(p => q.part.indexOf(p) === 0 || p === q.part));
+    if (!pool.length) pool = this.BANK.slice();
+    pool = pool.slice().sort(() => Math.random() - 0.5);
+    return pool;
+  }
+  startQuizNow() {
+    const quiz = this.buildQuiz();
+    this.setState({ quiz, quizStage: 'active', qIndex: 0, answers: {}, textAnswer: '', revealed: false, mockLeft: this.state.quizMode === 'Mock exam' ? quiz.length * 60 : 0 });
+  }
+  isCorrect(q, a) {
+    if (a === undefined || a === null || a === '') return false;
+    if (q.type === 'mcq' || q.type === 'tf') return a === q.answer;
+    if (q.type === 'fib') return String(a).trim().toLowerCase() === String(q.answer).toLowerCase();
+    return String(a).trim().length > 12;
+  }
+  submitQuiz() {
+    const s = this.state, quiz = s.quiz || [];
+    let correct = 0;
+    quiz.forEach((q, i) => { if (this.isCorrect(q, s.answers[i])) correct++; });
+    const pct = quiz.length ? Math.round((correct / quiz.length) * 100) : 0;
+    const attempt = { when: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }), mode: s.quizMode, correct, total: quiz.length, pct };
+    this.setState({ quizStage: 'result', attempts: [attempt].concat(s.attempts), mockLeft: 0 });
+  }
+
+  md(src) {
+    const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const inline = (t) => esc(t)
+      .replace(/`([^`]+)`/g, '<code style="font-family:ui-monospace,monospace;font-size:.9em;background:var(--color-surface);padding:1px 4px;border-radius:2px">$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    const out = [];
+    let list = null;
+    (src || '').split('\n').forEach(line => {
+      const flush = () => { if (list) { out.push('<ul style="margin:0 0 10px;padding-left:18px">' + list.join('') + '</ul>'); list = null; } };
+      if (/^\s*[-*]\s+/.test(line)) { list = list || []; list.push('<li style="margin-bottom:3px">' + inline(line.replace(/^\s*[-*]\s+/, '')) + '</li>'); return; }
+      flush();
+      if (/^###\s+/.test(line)) out.push('<h4 style="margin:12px 0 4px">' + inline(line.slice(4)) + '</h4>');
+      else if (/^##\s+/.test(line)) out.push('<h3 style="margin:14px 0 4px">' + inline(line.slice(3)) + '</h3>');
+      else if (/^#\s+/.test(line)) out.push('<h2 style="margin:0 0 8px">' + inline(line.slice(2)) + '</h2>');
+      else if (/^>\s+/.test(line)) out.push('<blockquote style="margin:8px 0;padding-left:12px;border-left:2px solid var(--color-accent);font-style:italic">' + inline(line.slice(2)) + '</blockquote>');
+      else if (line.trim() === '') out.push('');
+      else out.push('<p style="margin:0 0 10px">' + inline(line) + '</p>');
+    });
+    if (list) out.push('<ul style="margin:0 0 10px;padding-left:18px">' + list.join('') + '</ul>');
+    return out.join('');
+  }
+
+  // ── style helpers ──
+  navBtn(active) {
+    return { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left', cursor: 'pointer',
+      fontFamily: 'var(--font-heading)', fontSize: '15px', letterSpacing: '.01em', padding: '7px 10px', borderRadius: 'var(--radius-md)',
+      color: active ? 'var(--accent-ink)' : 'var(--color-text)', background: active ? 'color-mix(in srgb, var(--color-accent) 14%, transparent)' : 'transparent',
+      border: '1px solid ' + (active ? 'var(--color-accent)' : 'transparent') };
+  }
+  chip(active, small) {
+    return { cursor: 'pointer', fontFamily: 'var(--font-heading)', fontSize: small ? '12px' : '13px', padding: small ? '4px 8px' : '5px 11px',
+      borderRadius: 'var(--radius-md)', background: active ? 'color-mix(in srgb, var(--color-accent) 16%, transparent)' : 'transparent',
+      color: active ? 'var(--accent-ink)' : 'var(--color-text)', border: '1px solid ' + (active ? 'var(--color-accent)' : 'var(--color-divider)') };
+  }
+  checkbox(done) {
+    return { width: '22px', height: '22px', flex: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)', background: 'transparent',
+      border: '1px solid ' + (done ? 'var(--color-accent)' : 'var(--color-divider)'), color: 'var(--color-accent)', fontSize: '13px', lineHeight: 1, padding: 0 };
+  }
+
+  renderVals() {
+    const s = this.state, self = this;
+    const set = (o, cb) => this.setState(o, cb);
+    const mins = this.totalMinutes();
+    const streak = this.streakCount();
+
+    const views = [
+      ['dash', 'Dashboard', 'Analytics & progress', 'Where you stand'],
+      ['study', 'Study sessions', 'Focus timer', 'Pomodoro & manual log'],
+      ['syllabus', 'Syllabus', 'Course manager', s.level],
+      ['tasks', 'Tasks', 'Study agenda', 'Priorities & deadlines'],
+      ['quiz', 'Tests', 'Assessment engine', 'Quiz builder & mock exam'],
+      ['cards', 'Flashcards', 'Spaced repetition', 'SM-2 scheduler'],
+      ['notes', 'Notes', 'Notes hub', 'Markdown, attached to topics'],
+      ['badges', 'Achievements', 'Gamification', 'Streaks & milestones']
+    ];
+    const cur = views.find(v => v[0] === s.view) || views[0];
+    const openTasks = s.tasks.filter(t => !t.done);
+    const dueCards = this.dueCards();
+
+    const badgeMetrics = {
+      sessions: s.sessions.length, hours: Math.floor(mins / 60), streak, best: this.bestScore(),
+      mastered: this.masteredCount(), tasksDone: s.tasks.filter(t => t.done).length, reviews: s.reviews
+    };
+
+    const navBadges = { tasks: openTasks.length ? String(openTasks.length) : '', cards: dueCards.length ? String(dueCards.length) : '', badges: String(this.BADGE_DEFS.filter(b => badgeMetrics[b.metric] >= b.target).length) };
+
+    // dashboard chart
+    const chart = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const iso = d.toISOString().slice(0, 10);
+      const m = this.minutesOn(iso);
+      const h = Math.max(2, Math.round((m / 120) * 100));
+      chart.push({ day: d.toLocaleDateString('en-GB', { weekday: 'short' }).slice(0, 3), mins: m || '—',
+        barStyle: { width: '100%', height: Math.min(100, h) + '%', background: m ? 'color-mix(in srgb, var(--color-accent) 28%, transparent)' : 'transparent', borderTop: '2px solid ' + (m ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: '2px 2px 0 0' } });
+    }
+
+    const heatCells = [], legend = [1, 2, 3, 0].map(c => ({ label: this.confName(c), style: { width: '10px', height: '10px', display: 'inline-block', background: this.confColor(c), borderRadius: '2px' } }));
+    this.modules().forEach(m => m.topics.forEach(t => {
+      const c = this.confOf(m.name, t[0]);
+      heatCells.push({ title: m.name + ' — ' + t[0] + ' · ' + this.confName(c),
+        style: { width: '22px', height: '22px', borderRadius: '2px', background: c ? this.confColor(c) : 'transparent', border: '1px solid ' + (c ? 'transparent' : 'var(--color-divider)'), opacity: c ? 0.85 : 1 } });
+    }));
+
+    const courseProgress = this.modules().map(m => {
+      const done = m.topics.filter(t => this.confOf(m.name, t[0]) === 3).length;
+      const pct = Math.round((done / m.topics.length) * 100);
+      return { name: m.name, label: pct + '% · ' + m.weight + ' marks', fillStyle: { width: Math.max(1, pct) + '%', height: '100%', background: 'var(--color-accent)' } };
+    });
+
+    const taskRow = (t, i, withQuote) => ({
+      title: t.title, priority: t.priority, done: t.done, quote: this.quoteFor(i + t.title.length), showQuote: withQuote && !t.done && (this.props.showQuotes ?? true),
+      mark: t.done ? '✓' : '', boxStyle: this.checkbox(t.done),
+      titleStyle: { fontSize: '15px', textDecoration: t.done ? 'line-through' : 'none', opacity: t.done ? 0.55 : 1 },
+      meta: t.due ? 'Due ' + new Date(t.due + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'No deadline',
+      countdown: (() => {
+        if (!t.due) return '';
+        const d = this.dayIndex(t.due) - this.dayIndex();
+        if (t.done) return 'completed';
+        return d < 0 ? Math.abs(d) + ' days overdue' : d === 0 ? 'due today' : d + ' days left';
+      })(),
+      priStyle: Object.assign(this.chip(t.priority === 'High', true), { color: t.priority === 'High' ? '#a03027' : 'var(--color-text)', borderColor: t.priority === 'High' ? '#a03027' : 'var(--color-divider)', cursor: 'default' }),
+      toggle: () => set({ tasks: s.tasks.map(x => x.id === t.id ? Object.assign({}, x, { done: !x.done }) : x) }),
+      remove: () => set({ tasks: s.tasks.filter(x => x.id !== t.id) })
+    });
+
+    // quiz view models
+    const quiz = s.quiz || [];
+    const q = quiz[s.qIndex];
+    const ans = s.answers[s.qIndex];
+    const isMock = s.quizMode === 'Mock exam';
+    const locked = isMock && ans !== undefined;
+    const showFb = !isMock && s.revealed && ans !== undefined;
+    const qOptions = q && (q.type === 'mcq' || q.type === 'tf') ? q.options.map((o, i) => {
+      const picked = ans === i;
+      const right = !isMock && s.revealed && i === q.answer;
+      const wrong = !isMock && s.revealed && picked && i !== q.answer;
+      return { key: 'ABCD'[i], text: o, flag: right ? 'correct' : wrong ? 'your pick' : '',
+        style: { display: 'flex', gap: '10px', alignItems: 'center', width: '100%', cursor: locked ? 'default' : 'pointer', padding: '11px 14px', fontFamily: 'var(--font-body)', fontSize: '15px',
+          background: right ? 'color-mix(in srgb, #3f7d4e 14%, transparent)' : wrong ? 'color-mix(in srgb, #b3392f 12%, transparent)' : picked ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)' : 'transparent',
+          color: 'var(--color-text)', border: '1px solid ' + (right ? '#3f7d4e' : wrong ? '#b3392f' : picked ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)' },
+        pick: () => { if (locked) return; set({ answers: Object.assign({}, s.answers, { [s.qIndex]: i }), revealed: !isMock }); } };
+    }) : [];
+
+    const attempts = s.attempts.slice(0, 8).map(a => ({ when: a.when, mode: a.mode, score: a.correct + '/' + a.total + ' · ' + a.pct + '%' }));
+    const lastAttempt = s.attempts[0];
+    const resCorrect = lastAttempt ? lastAttempt.correct : 0;
+    const resByPart = (() => {
+      const map = {};
+      quiz.forEach((qq, i) => {
+        const k = qq.part;
+        map[k] = map[k] || { part: k, correct: 0, asked: 0 };
+        map[k].asked++;
+        if (this.isCorrect(qq, s.answers[i])) map[k].correct++;
+      });
+      return Object.keys(map).map(k => ({ part: k, correct: map[k].correct, asked: map[k].asked, pct: Math.round((map[k].correct / map[k].asked) * 100) + '%' }));
+    })();
+    const resReview = quiz.map((qq, i) => {
+      const ok = this.isCorrect(qq, s.answers[i]);
+      const given = s.answers[i];
+      const yourText = given === undefined || given === '' ? 'Not answered'
+        : (qq.type === 'mcq' || qq.type === 'tf') ? qq.options[given] : String(given);
+      return { q: (i + 1) + '. ' + qq.q, yours: 'Your answer: ' + yourText,
+        right: ok ? '✓ ' + qq.explain : '→ ' + ((qq.type === 'mcq' || qq.type === 'tf') ? qq.options[qq.answer] : qq.answer) + ' — ' + qq.explain,
+        style: { padding: 'var(--space-3)', borderLeft: '2px solid ' + (ok ? '#3f7d4e' : '#b3392f'), background: 'color-mix(in srgb, var(--color-text) 3%, transparent)' } };
+    });
+
+    const cardIdx = s.cardIndex >= 0 && dueCards.indexOf(s.cardIndex) >= 0 ? s.cardIndex : (dueCards.length ? dueCards[0] : -1);
+    const card = cardIdx >= 0 ? this.CARDS[cardIdx] : null;
+    const cs = cardIdx >= 0 ? this.cardState(cardIdx) : null;
+    const nextIntervalLabel = (g) => {
+      if (!cs) return '';
+      if (g === 0) return 'today';
+      const reps = cs.reps + 1;
+      const iv = reps === 1 ? 1 : reps === 2 ? 3 : Math.max(1, Math.round(cs.interval * cs.ease * (g === 1 ? 0.6 : 1)));
+      return iv + 'd';
+    };
+
+    const note = s.notes.find(n => n.id === s.activeNote) || s.notes[0] || { id: '', title: '', topic: '', body: '' };
+    const updNote = (patch) => set({ notes: s.notes.map(n => n.id === note.id ? Object.assign({}, n, patch) : n) });
+
+    const streakDots = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+      const m = this.minutesOn(d);
+      streakDots.push({ title: d + ' · ' + m + ' min', style: { width: '18px', height: '18px', borderRadius: '50%', background: m ? 'color-mix(in srgb, var(--color-accent) ' + Math.min(90, 25 + m / 2) + '%, transparent)' : 'transparent', border: '1px solid ' + (m ? 'var(--color-accent)' : 'var(--color-divider)') } });
+    }
+
+    const mm = (secs) => String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
+    const phaseTotal = this.phaseLength(s.phase) || 1;
+
+    return {
+      // shell
+      navItems: views.map(v => ({ label: v[1], badge: navBadges[v[0]] || '', style: this.navBtn(s.view === v[0]), go: () => set({ view: v[0] }) })),
+      levelOptions: Object.keys(this.SYLLABUS).map(l => ({ label: l, style: Object.assign(this.navBtn(s.level === l), { fontSize: '13px', padding: '5px 9px', marginBottom: '3px' }), go: () => set({ level: l }) })),
+      resetLabel: s.confirmReset ? 'Tap again to confirm' : 'Reset my progress',
+      resetNote: s.confirmReset ? 'Clears every logged session, streak, test attempt, card schedule and mastery mark. Syllabus, tasks and notes stay.' : 'Start from zero — clears the sample study data.',
+      resetStyle: { justifyContent: 'center', borderColor: s.confirmReset ? '#b3392f' : 'var(--color-divider)', color: s.confirmReset ? '#b3392f' : 'var(--color-text)' },
+      resetProgress: () => {
+        if (!s.confirmReset) { set({ confirmReset: true }); setTimeout(() => this.setState({ confirmReset: false }), 5000); return; }
+        set({ confirmReset: false, sessions: [], attempts: [], cards: {}, reviews: 0, confidence: {},
+          tasks: s.tasks.map(t => Object.assign({}, t, { done: false })),
+          cardIndex: 0, cardRevealed: false, cycles: 0, running: false, remaining: this.phaseLength('focus'), phase: 'focus',
+          quizStage: 'setup', quiz: null, answers: {}, qIndex: 0, view: 'dash' });
+      },
+      themeLabel: s.theme === 'dark' ? 'Dark' : 'Light',
+      toggleTheme: () => set({ theme: s.theme === 'dark' ? 'light' : 'dark' }),
+      viewKicker: cur[2], viewTitle: cur[1] === 'Syllabus' ? 'Syllabus — ' + s.level : cur[1],
+      streak: streak, totalHours: (mins / 60).toFixed(1),
+      quoteOfDay: this.quoteFor(this.dayIndex()),
+      showQuoteBar: (this.props.showQuotes ?? true) && (s.view === 'dash' || s.view === 'study' || s.view === 'badges'),
+      isDash: s.view === 'dash', isStudy: s.view === 'study', isSyllabus: s.view === 'syllabus', isTasks: s.view === 'tasks',
+      isQuiz: s.view === 'quiz', isCards: s.view === 'cards', isNotes: s.view === 'notes', isBadges: s.view === 'badges',
+
+      // dashboard
+      stats: [
+        { label: 'Hours studied', value: (mins / 60).toFixed(1), sub: this.minutesOn(this.today()) + ' min today' },
+        { label: 'Daily streak', value: streak, sub: streak > 2 ? 'Keep it alive' : 'Build the habit' },
+        { label: 'Tasks done', value: s.tasks.filter(t => t.done).length + '/' + s.tasks.length, sub: openTasks.length + ' open' },
+        { label: 'Best test score', value: this.bestScore() + '%', sub: s.attempts.length + ' attempts · 60% qualifies' }
+      ],
+      chart, heatCells, heatLegend: legend, courseProgress,
+      agenda: openTasks.slice(0, 5).map((t, i) => taskRow(t, i, false)),
+
+      // study
+      phaseLabel: s.timerMode === 'Stopwatch' ? 'Stopwatch' : (s.phase === 'focus' ? 'Focus' : 'Break'),
+      timerDisplay: mm(s.timerMode === 'Stopwatch' ? s.remaining : s.remaining),
+      timerFillStyle: { width: Math.round(((phaseTotal - s.remaining) / phaseTotal) * 100) + '%', height: '100%', background: 'var(--color-accent)' },
+      runLabel: s.running ? 'Pause' : 'Start',
+      toggleTimer: () => set({ running: !s.running }),
+      resetTimer: () => set({ running: false, remaining: this.phaseLength(s.phase) }),
+      skipPhase: () => this.finishPhase(),
+      modeOptions: ['Pomodoro 25/5', 'Deep work 50/10', 'Stopwatch'].map(m => ({ label: m, style: this.chip(s.timerMode === m, true), go: () => set({ timerMode: m, phase: 'focus', running: false, remaining: m === 'Stopwatch' ? 0 : this.phaseLength('focus') }) })),
+      pomodoroNote: s.timerMode === 'Stopwatch' ? 'Stopwatch counts up — log the minutes by hand when you stop.' : 'Completed focus phases are logged automatically. Cycles today: ' + s.cycles + '.',
+      logLabel: s.logLabel, setLogLabel: e => set({ logLabel: e.target.value }),
+      logMinutes: s.logMinutes, setLogMinutes: e => set({ logMinutes: e.target.value }),
+      addManualLog: () => { if (!Number(s.logMinutes)) return; this.logSession(s.logLabel || 'Manual session', Number(s.logMinutes)); set({ logLabel: '' }); },
+      sessionRows: s.sessions.slice(0, 8).map(x => ({ label: x.label, when: x.date === this.today() ? 'Today' : new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }), mins: x.mins })),
+      sessionSummary: s.sessions.length + ' sessions · ' + (mins / 60).toFixed(1) + ' hours total · average ' + Math.round(mins / Math.max(1, s.sessions.length)) + ' min',
+
+      // syllabus
+      syllabusModules: this.modules().map((m, mi) => {
+        const done = m.topics.filter(t => this.confOf(m.name, t[0]) === 3).length;
+        return { name: m.name, kicker: 'Module ' + (mi + 1) + ' · ' + m.weight + ' marks',
+          label: done + ' of ' + m.topics.length + ' mastered',
+          topics: m.topics.map(t => {
+            const c = this.confOf(m.name, t[0]);
+            const cycle = () => set({ confidence: Object.assign({}, s.confidence, { [this.topicKey(m.name, t[0])]: (c + 1) % 4 }) });
+            return { name: t[0], sub: t[1], confLabel: this.confName(c), cycle,
+              dotStyle: { width: '14px', height: '14px', flex: 'none', borderRadius: '50%', cursor: 'pointer', padding: 0, background: c ? this.confColor(c) : 'transparent', border: '1px solid ' + (c ? this.confColor(c) : 'var(--color-divider)') },
+              tagStyle: Object.assign(this.chip(c > 0, true), { color: c ? this.confColor(c) : 'var(--color-text)', borderColor: c ? this.confColor(c) : 'var(--color-divider)', background: 'transparent', minWidth: '96px' }) };
+          }) };
+      }),
+
+      // tasks
+      taskDraft: s.taskDraft, setTaskDraft: e => set({ taskDraft: e.target.value }),
+      taskDue: s.taskDue, setTaskDue: e => set({ taskDue: e.target.value }),
+      priorityOptions: ['High', 'Medium', 'Low'].map(p => ({ label: p, style: this.chip(s.taskPriority === p, true), go: () => set({ taskPriority: p }) })),
+      addTask: () => { if (!s.taskDraft.trim()) return; set({ tasks: [{ id: 't' + Date.now(), title: s.taskDraft.trim(), priority: s.taskPriority, due: s.taskDue, done: false }].concat(s.tasks), taskDraft: '', taskDue: '' }); },
+      taskFilters: ['Open', 'Done', 'All'].map(f => ({ label: f, style: this.chip(s.taskFilter === f, false), go: () => set({ taskFilter: f }) })),
+      taskList: s.tasks.filter(t => s.taskFilter === 'All' ? true : s.taskFilter === 'Done' ? t.done : !t.done).map((t, i) => taskRow(t, i, true)),
+
+      // quiz
+      quizSetup: s.quizStage === 'setup', quizActive: s.quizStage === 'active', quizResult: s.quizStage === 'result',
+      typeOptions: [['mcq', 'Multiple choice'], ['tf', 'True / false'], ['fib', 'Fill in the blank'], ['sa', 'Short answer']].map(t => ({
+        label: t[1], style: this.chip(s.quizTypes.includes(t[0]), true),
+        go: () => set({ quizTypes: s.quizTypes.includes(t[0]) ? s.quizTypes.filter(x => x !== t[0]) : s.quizTypes.concat([t[0]]) })
+      })),
+      partOptions: ['Child Development & Pedagogy', 'Language I — Hindi', 'Language II — English', 'General Studies', 'Subject'].map(p => ({
+        label: p.replace(' & Pedagogy', ''), style: this.chip(s.quizParts.includes(p), true),
+        go: () => set({ quizParts: s.quizParts.includes(p) ? s.quizParts.filter(x => x !== p) : s.quizParts.concat([p]) })
+      })),
+      examModes: ['Practice', 'Mock exam'].map(m => ({ label: m, style: this.chip(s.quizMode === m, false), go: () => set({ quizMode: m }) })),
+      startLabel: s.quizMode === 'Mock exam' ? 'Begin timed mock exam' : 'Start practice set',
+      quizSetupNote: s.quizMode === 'Mock exam' ? 'Mock conditions: one minute per question, answers lock once chosen, no feedback until submission.' : 'Practice mode reveals the answer and explanation immediately after each response.',
+      startQuiz: () => this.startQuizNow(),
+      attemptRows: attempts, attemptSummary: s.attempts.length ? 'Best ' + this.bestScore() + '% · average ' + Math.round(s.attempts.reduce((a, b) => a + b.pct, 0) / s.attempts.length) + '%' : 'No attempts yet — the first one sets your baseline.',
+      qProgress: 'Question ' + (s.qIndex + 1) + ' of ' + quiz.length + (isMock ? ' · mock conditions' : ' · practice'),
+      qProgressFill: { width: Math.round(((s.qIndex + 1) / Math.max(1, quiz.length)) * 100) + '%', height: '100%', background: 'var(--color-accent)' },
+      mockClock: isMock ? mm(s.mockLeft) : 'untimed',
+      mockClockStyle: { fontFamily: 'var(--font-heading)', fontSize: '22px', fontFeatureSettings: "'tnum'", color: isMock && s.mockLeft < 60 ? '#b3392f' : 'var(--color-text)', animation: isMock && s.mockLeft < 60 ? 'htetPulse 1.2s infinite' : 'none' },
+      qMeta: q ? q.part + ' · ' + ({ mcq: 'multiple choice', tf: 'true / false', fib: 'fill in the blank', sa: 'short answer' })[q.type] : '',
+      qText: q ? q.q : '',
+      qHasOptions: !!q && (q.type === 'mcq' || q.type === 'tf'), qOptions,
+      qIsText: !!q && (q.type === 'fib' || q.type === 'sa'),
+      qInputLabel: q && q.type === 'fib' ? 'Fill the blank' : 'Your answer',
+      qTextAnswer: ans === undefined ? '' : String(ans),
+      setTextAnswer: e => set({ answers: Object.assign({}, s.answers, { [s.qIndex]: e.target.value }) }),
+      qShowFeedback: showFb,
+      qFeedbackTitle: q && this.isCorrect(q, ans) ? 'Correct' : 'Not quite',
+      qFeedbackStyle: { marginTop: 'var(--space-4)', padding: 'var(--space-3) var(--space-4)', borderLeft: '2px solid ' + (q && this.isCorrect(q, ans) ? '#3f7d4e' : '#b3392f'), background: 'color-mix(in srgb, var(--color-text) 4%, transparent)' },
+      qExplain: q ? q.explain : '',
+      nextLabel: s.qIndex + 1 >= quiz.length ? 'Submit test' : (isMock ? 'Next question' : (s.revealed || !q || q.type === 'fib' || q.type === 'sa' ? 'Next question' : 'Skip')),
+      nextQuestion: () => {
+        if (!isMock && q && (q.type === 'fib' || q.type === 'sa') && !s.revealed && s.answers[s.qIndex] !== undefined) { set({ revealed: true }); return; }
+        if (s.qIndex + 1 >= quiz.length) this.submitQuiz(); else set({ qIndex: s.qIndex + 1, revealed: false });
+      },
+      lockNote: isMock ? 'Answers lock once selected.' : (q && (q.type === 'fib' || q.type === 'sa') ? 'Type an answer, then check it.' : ''),
+      abortQuiz: () => set({ quizStage: 'setup' }),
+      resPct: (lastAttempt ? lastAttempt.pct : 0) + '%',
+      resVerdict: lastAttempt ? resCorrect + ' of ' + lastAttempt.total + ' correct in ' + lastAttempt.mode.toLowerCase() + ' mode. ' + (lastAttempt.pct >= 60 ? 'Above the 60% HTET qualifying line.' : 'Below the 60% qualifying line — target the weakest part below.') : '',
+      resQuote: (this.props.showQuotes ?? true) ? this.quoteFor(resCorrect + 3) : '',
+      resByPart, resReview,
+      backToSetup: () => set({ quizStage: 'setup', quiz: null, answers: {}, qIndex: 0 }),
+
+      // flashcards
+      hasCard: !!card, noCard: !card,
+      cardMeta: card ? card[2] + ' · ' + dueCards.length + ' due · ease ' + cs.ease.toFixed(2) : '',
+      cardFront: card ? card[0] : '', cardBack: card ? card[1] : '',
+      cardRevealed: !!card && s.cardRevealed, cardHidden: !!card && !s.cardRevealed,
+      revealCard: () => set({ cardIndex: cardIdx, cardRevealed: true }),
+      gradeButtons: [[0, 'Again'], [1, 'Hard'], [2, 'Good'], [3, 'Easy']].map(g => ({
+        label: g[1], next: nextIntervalLabel(g[0]),
+        style: Object.assign(this.chip(g[0] === 2, false), { flex: '1 1 90px', display: 'flex', flexDirection: 'column', gap: '2px', padding: '9px 10px' }),
+        go: () => { set({ cardIndex: cardIdx }, () => this.grade(g[0])); }
+      })),
+      srsStats: [
+        { label: 'Due now', value: dueCards.length },
+        { label: 'Reviews', value: s.reviews },
+        { label: 'Cards', value: this.CARDS.length }
+      ],
+      deckRows: this.CARDS.map((c, i) => {
+        const st = this.cardState(i);
+        const d = st.due - this.dayIndex();
+        return { front: c[0], ease: st.ease.toFixed(2), due: d <= 0 ? 'now' : d + 'd' };
+      }),
+      resetSrs: () => set({ cards: {}, cardRevealed: false, cardIndex: 0 }),
+
+      // notes
+      noteList: s.notes.map(n => ({ title: n.title || 'Untitled', topic: n.topic, style: Object.assign(this.navBtn(n.id === note.id), { flexDirection: 'column', alignItems: 'flex-start', gap: '0' }), go: () => set({ activeNote: n.id }) })),
+      noteTitle: note.title, setNoteTitle: e => updNote({ title: e.target.value }),
+      noteTopic: note.topic, setNoteTopic: e => updNote({ topic: e.target.value }),
+      noteBody: note.body, setNoteBody: e => updNote({ body: e.target.value }),
+      notePreview: React.createElement('div', { style: { fontSize: '14px', lineHeight: 1.6 }, dangerouslySetInnerHTML: { __html: this.md(note.body) } }),
+      addNote: () => { const id = 'n' + Date.now(); set({ notes: [{ id, title: 'New note', topic: s.level, body: '# New note\n\n- point one\n' }].concat(s.notes), activeNote: id }); },
+      deleteNote: () => { const rest = s.notes.filter(n => n.id !== note.id); set({ notes: rest, activeNote: rest.length ? rest[0].id : '' }); },
+
+      // badges
+      streakDots,
+      badges: this.BADGE_DEFS.map(b => {
+        const v = badgeMetrics[b.metric] || 0;
+        const unlocked = v >= b.target;
+        const pct = Math.min(100, Math.round((v / b.target) * 100));
+        return { name: b.name, desc: b.desc, state: unlocked ? 'Unlocked' : 'Locked',
+          progress: Math.min(v, b.target) + ' / ' + b.target,
+          style: { padding: 'var(--space-4)', border: '1px solid ' + (unlocked ? 'var(--color-accent)' : 'var(--color-divider)'), borderRadius: 'var(--radius-md)', background: unlocked ? 'color-mix(in srgb, var(--color-accent) 8%, transparent)' : 'transparent', opacity: unlocked ? 1 : 0.75 },
+          fillStyle: { width: Math.max(1, pct) + '%', height: '100%', background: unlocked ? 'var(--color-accent)' : 'var(--color-neutral-500)' } };
+      })
+    };
+  }
+}
+
+</script>
+</body>
+</html>

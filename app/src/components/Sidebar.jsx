@@ -2,6 +2,7 @@ import React from 'react';
 import { useApp } from '../AppContext.jsx';
 import { VIEWS, SYLLABUS, navBadgesFor } from '../lib/logic.js';
 import { navBtn } from '../lib/styleHelpers.js';
+import AccountPanel from './AccountPanel.jsx';
 
 export default function Sidebar() {
   const { state, actions } = useApp();
@@ -39,6 +40,8 @@ export default function Sidebar() {
       </nav>
 
       <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        <AccountPanel />
+
         <div style={{ borderTop: '1px solid var(--color-divider)', paddingTop: 'var(--space-3)' }}>
           <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .6, marginBottom: '4px' }}>
             Exam level

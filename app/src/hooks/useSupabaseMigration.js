@@ -53,5 +53,5 @@ export function useSupabaseMigration() {
     run(user);
   }, [user, run]);
 
-  return { status, error, retry };
+  return { status, error, retry, userId: user?.id ?? null };
 }

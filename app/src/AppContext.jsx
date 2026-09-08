@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react';
 import { useAppState } from './hooks/useAppState.js';
 import { useSupabaseMigration } from './hooks/useSupabaseMigration.js';
 import { useCloudTasksAndNotes } from './hooks/useCloudTasksAndNotes.js';
@@ -7,6 +7,8 @@ import { useCloudTopicConfidence } from './hooks/useCloudTopicConfidence.js';
 import { useCloudFlashcardSrs } from './hooks/useCloudFlashcardSrs.js';
 import { useCloudQuizAttempts } from './hooks/useCloudQuizAttempts.js';
 import { useCloudProfileSettings } from './hooks/useCloudProfileSettings.js';
+import { clearStoredState } from './lib/dataStore.js';
+import { seedState } from './lib/logic.js';
 
 const AppContext = createContext(null);
 
@@ -22,6 +24,35 @@ export function AppProvider({ children }) {
   const migration = useSupabaseMigration();
 
   const cloudActive = (migration.status === 'success' || migration.status === 'already_migrated') && !!migration.userId;
+
+  // Cross-user localStorage contamination fix: on a shared device, an
+  // explicit logout previously left this device's single global
+  // localStorage entry (and the in-memory base.state built from it)
+  // populated with the just-logged-out user's real data. If a different
+  // user then logged in on the same page without a refresh, the one-time
+  // migration engine would read that leftover data via readStoredState()
+  // and migrate it into the new user's own Supabase account.
+  //
+  // previousUserId only ever transitions real-id -> null on an actual
+  // logout (it starts at null on a fresh load, and stays null through
+  // useAuth's initial session check and for any anonymous session, so
+  // this never fires just because no one is logged in yet). Only that
+  // specific transition clears storage and resets state -- a same user
+  // staying logged in, or the app merely loading, never matches.
+  const previousUserId = useRef(null);
+  useEffect(() => {
+    const currentUserId = migration.userId;
+    if (previousUserId.current && !currentUserId) {
+      // Clear localStorage FIRST, synchronously. useAppState.js's
+      // persistence effect saves on every state change, including the
+      // 1-second timer tick -- if the reset below landed first, an
+      // active timer could re-save the old user's still-in-memory state
+      // back into storage before this clear ever ran.
+      clearStoredState();
+      base.update(() => seedState());
+    }
+    previousUserId.current = currentUserId;
+  }, [migration.userId, base.update]);
 
   const cloud = useCloudTasksAndNotes({
     active: cloudActive,

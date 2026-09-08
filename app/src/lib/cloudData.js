@@ -17,6 +17,12 @@ function taskFromRow(row) {
 function noteFromRow(row) {
   return { id: row.id, title: row.title, topic: row.topic_label || '', body: row.body_md || '' };
 }
+function sessionFromRow(row) {
+  // Sessions have no id/edit/delete UI in the app (StudySessions.jsx keys
+  // its rows by array index) -- match the local shape exactly and drop the
+  // rest of the row rather than inventing a field nothing consumes.
+  return { label: row.label, mins: row.minutes, date: row.local_date };
+}
 
 export async function fetchTasks(userId) {
   const { data, error } = await supabase.from('tasks').select('*').eq('user_id', userId).order('created_at', { ascending: false });
@@ -91,4 +97,33 @@ export async function cloudUpdateNote(userId, id, patch) {
 export async function cloudDeleteNote(userId, id) {
   const { error } = await supabase.from('notes').delete().eq('id', id).eq('user_id', userId);
   assertNoError('deleting note', error);
+}
+
+export async function fetchStudySessions(userId) {
+  const { data, error } = await supabase
+    .from('study_sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  assertNoError('fetching study sessions', error);
+  return (data || []).map(sessionFromRow);
+}
+
+// Sessions are append-only in this app (no edit/delete UI, no local id) --
+// there is no cloudUpdateStudySession/cloudDeleteStudySession to match.
+export async function cloudAddStudySession(userId, { label, mins, date }) {
+  const { error } = await supabase.from('study_sessions').insert({
+    user_id: userId,
+    label,
+    minutes: mins,
+    local_date: date,
+    topic_id: null,
+    // Same best-effort inference migrateToSupabase.js uses: the Pomodoro
+    // timer is the only thing that produces this exact label prefix
+    // (finishPhaseState() in logic.js); everything else -- including
+    // "Skip phase", which also logs a partial Pomodoro session under the
+    // same label -- is otherwise indistinguishable from a manual entry.
+    source: typeof label === 'string' && label.startsWith('Pomodoro —') ? 'pomodoro' : 'manual'
+  });
+  assertNoError('adding study session', error);
 }

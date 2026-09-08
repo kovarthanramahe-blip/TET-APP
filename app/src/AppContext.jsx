@@ -2,6 +2,7 @@ import React, { createContext, useContext, useMemo } from 'react';
 import { useAppState } from './hooks/useAppState.js';
 import { useSupabaseMigration } from './hooks/useSupabaseMigration.js';
 import { useCloudTasksAndNotes } from './hooks/useCloudTasksAndNotes.js';
+import { useCloudStudySessions } from './hooks/useCloudStudySessions.js';
 
 const AppContext = createContext(null);
 
@@ -26,14 +27,29 @@ export function AppProvider({ children }) {
     baseActions: base.actions
   });
 
+  const cloudSessions = useCloudStudySessions({
+    active: cloudActive,
+    userId: migration.userId,
+    baseSessions: base.state.sessions
+  });
+
+  // Both cloud hooks report errors into this one slot -- MigrationBanner.jsx
+  // shows a single generic "couldn't sync" banner rather than one per
+  // resource, so simultaneous failures across tasks/notes and sessions
+  // collapse to whichever is present (tasks/notes takes priority; dismissing
+  // clears both). Failures on two unrelated resources at once is rare
+  // enough that this is a deliberate simplification, not an oversight.
+  const cloudError = cloud.error || cloudSessions.error;
+  const clearCloudError = () => { cloud.clearError(); cloudSessions.clearError(); };
+
   const value = useMemo(() => ({
-    state: { ...base.state, tasks: cloud.tasks, notes: cloud.notes },
+    state: { ...base.state, tasks: cloud.tasks, notes: cloud.notes, sessions: cloudSessions.sessions },
     update: base.update,
     actions: cloudActive
       ? { ...base.actions, ...cloud.actions }
       : base.actions,
-    migration: { ...migration, cloudError: cloud.error, clearCloudError: cloud.clearError }
-  }), [base.state, base.update, base.actions, cloud.tasks, cloud.notes, cloud.actions, cloud.error, cloud.clearError, cloudActive, migration]);
+    migration: { ...migration, cloudError, clearCloudError }
+  }), [base.state, base.update, base.actions, cloud.tasks, cloud.notes, cloud.actions, cloudSessions.sessions, cloudActive, migration, cloudError]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

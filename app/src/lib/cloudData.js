@@ -6,6 +6,8 @@
 // nothing above this file needs to know the two shapes differ.
 
 import { supabase } from './supabaseClient.js';
+import { CARDS } from '../data/flashcards.js';
+import { today, dayIndex } from './dates.js';
 
 function assertNoError(context, error) {
   if (error) throw new Error(`[cloudData] ${context} failed: ${error.message}`);
@@ -190,4 +192,90 @@ export async function cloudSetTopicConfidence(userId, keyToTopicId, key, level) 
     .from('topic_confidence')
     .upsert({ user_id: userId, topic_id: topicId, level }, { onConflict: 'user_id,topic_id' });
   assertNoError('updating topic confidence', error);
+}
+
+// Local flashcard SRS keys are stringified indexes ("0".."9") into CARDS
+// (data/flashcards.js); flashcard_srs_state keys on card_id (uuid). Same
+// front-text matching migrateToSupabase.js uses for the one-time migration
+// (the `flashcards` table has no position/created_at to order by, and per
+// that file's own rule we never assume UUID ordering either) -- duplicated
+// here rather than touching that reviewed, tested, left-alone file.
+async function fetchFlashcardIndexMaps() {
+  const { data, error } = await supabase.from('flashcards').select('id, front');
+  assertNoError('fetching flashcards for SRS index mapping', error);
+  if (!data || data.length !== CARDS.length) {
+    throw new Error(`[cloudData] expected ${CARDS.length} seeded flashcards, found ${data?.length ?? 0}`);
+  }
+  const idByFront = new Map(data.map(r => [r.front, r.id]));
+  const indexToId = CARDS.map(([front]) => {
+    const id = idByFront.get(front);
+    if (!id) throw new Error(`[cloudData] seeded flashcards is missing expected card: "${front}"`);
+    return id;
+  });
+  const idToIndex = new Map(indexToId.map((id, i) => [id, i]));
+  return { indexToId, idToIndex };
+}
+
+// Same local-midnight differencing approach as migrateToSupabase.js's
+// dateStringFromDayIndex() -- naive `new Date(due*86400000).toISOString()`
+// epoch math loses a day for positive-UTC-offset timezones (India/IST
+// specifically), since due_date is a Postgres `date`, not a timestamp.
+function dateStringFromDayIndex(targetIndex) {
+  const diff = targetIndex - dayIndex();
+  const anchor = new Date(today() + 'T00:00:00');
+  anchor.setDate(anchor.getDate() + diff);
+  const yyyy = anchor.getFullYear();
+  const mm = String(anchor.getMonth() + 1).padStart(2, '0');
+  const dd = String(anchor.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// Returns both the local-shape `cards` object (for hydrating base state --
+// see useCloudFlashcardSrs.js for why this resource is hydrated rather than
+// overridden) and the indexToId map needed by later cloudSetFlashcardSrs()
+// calls.
+export async function fetchFlashcardSrs(userId) {
+  const { indexToId, idToIndex } = await fetchFlashcardIndexMaps();
+  const { data, error } = await supabase
+    .from('flashcard_srs_state')
+    .select('card_id, ease, interval_days, reps, due_date')
+    .eq('user_id', userId);
+  assertNoError('fetching flashcard SRS state', error);
+
+  const cards = {};
+  for (const row of data ?? []) {
+    const index = idToIndex.get(row.card_id);
+    if (index === undefined) throw new Error(`[cloudData] flashcard SRS row references an unknown card_id "${row.card_id}"`);
+    cards[String(index)] = {
+      ease: Number(row.ease),
+      interval: row.interval_days,
+      reps: row.reps,
+      due: dayIndex(row.due_date)
+    };
+  }
+  return { cards, indexToId };
+}
+
+export async function cloudSetFlashcardSrs(userId, indexToId, index, entry) {
+  const cardId = indexToId.get(index);
+  if (!cardId) throw new Error(`[cloudData] unknown flashcard for index ${index}`);
+  const { error } = await supabase.from('flashcard_srs_state').upsert({
+    user_id: userId,
+    card_id: cardId,
+    ease: entry.ease,
+    interval_days: entry.interval,
+    reps: entry.reps,
+    due_date: dateStringFromDayIndex(entry.due)
+  }, { onConflict: 'user_id,card_id' });
+  assertNoError('updating flashcard SRS state', error);
+}
+
+// Mirrors a full local clear -- either the Flashcards view's "Reset
+// scheduling" button or the sidebar's "Reset my progress" both set
+// state.cards to {} -- as deleting all of this user's rows, matching
+// cardState()'s local semantics where an absent entry means "never
+// reviewed, default ease/interval/reps, due now."
+export async function cloudDeleteAllFlashcardSrs(userId) {
+  const { error } = await supabase.from('flashcard_srs_state').delete().eq('user_id', userId);
+  assertNoError('resetting flashcard SRS state', error);
 }

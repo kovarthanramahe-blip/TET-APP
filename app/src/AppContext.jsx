@@ -4,6 +4,7 @@ import { useSupabaseMigration } from './hooks/useSupabaseMigration.js';
 import { useCloudTasksAndNotes } from './hooks/useCloudTasksAndNotes.js';
 import { useCloudStudySessions } from './hooks/useCloudStudySessions.js';
 import { useCloudTopicConfidence } from './hooks/useCloudTopicConfidence.js';
+import { useCloudFlashcardSrs } from './hooks/useCloudFlashcardSrs.js';
 
 const AppContext = createContext(null);
 
@@ -40,15 +41,29 @@ export function AppProvider({ children }) {
     baseConfidence: base.state.confidence
   });
 
+  // No state/actions override for this one -- see useCloudFlashcardSrs.js
+  // for why: it keeps base.state.cards itself in sync with Supabase instead
+  // of layering cloud data on top, so Flashcards.jsx's grading action stays
+  // completely untouched and state.cards flows through from base.state as
+  // it always has (below).
+  const cloudFlashcards = useCloudFlashcardSrs({
+    active: cloudActive,
+    userId: migration.userId,
+    baseCards: base.state.cards,
+    baseUpdate: base.update
+  });
+
   // All cloud hooks report errors into this one slot -- MigrationBanner.jsx
   // shows a single generic "couldn't sync" banner rather than one per
-  // resource, so simultaneous failures across tasks/notes, sessions and
-  // confidence marks collapse to whichever is present first in this list;
-  // dismissing clears all of them. Failures on multiple unrelated resources
-  // at once is rare enough that this is a deliberate simplification, not an
-  // oversight.
-  const cloudError = cloud.error || cloudSessions.error || cloudConfidence.error;
-  const clearCloudError = () => { cloud.clearError(); cloudSessions.clearError(); cloudConfidence.clearError(); };
+  // resource, so simultaneous failures across tasks/notes, sessions,
+  // confidence marks and flashcard scheduling collapse to whichever is
+  // present first in this list; dismissing clears all of them. Failures on
+  // multiple unrelated resources at once is rare enough that this is a
+  // deliberate simplification, not an oversight.
+  const cloudError = cloud.error || cloudSessions.error || cloudConfidence.error || cloudFlashcards.error;
+  const clearCloudError = () => {
+    cloud.clearError(); cloudSessions.clearError(); cloudConfidence.clearError(); cloudFlashcards.clearError();
+  };
 
   const value = useMemo(() => ({
     state: { ...base.state, tasks: cloud.tasks, notes: cloud.notes, sessions: cloudSessions.sessions, confidence: cloudConfidence.confidence },

@@ -5,6 +5,7 @@ import { useCloudTasksAndNotes } from './hooks/useCloudTasksAndNotes.js';
 import { useCloudStudySessions } from './hooks/useCloudStudySessions.js';
 import { useCloudTopicConfidence } from './hooks/useCloudTopicConfidence.js';
 import { useCloudFlashcardSrs } from './hooks/useCloudFlashcardSrs.js';
+import { useCloudQuizAttempts } from './hooks/useCloudQuizAttempts.js';
 
 const AppContext = createContext(null);
 
@@ -53,26 +54,38 @@ export function AppProvider({ children }) {
     baseUpdate: base.update
   });
 
+  const cloudQuizAttempts = useCloudQuizAttempts({
+    active: cloudActive,
+    userId: migration.userId,
+    baseAttempts: base.state.attempts,
+    baseQuiz: base.state.quiz,
+    baseAnswers: base.state.answers
+  });
+
   // All cloud hooks report errors into this one slot -- MigrationBanner.jsx
   // shows a single generic "couldn't sync" banner rather than one per
   // resource, so simultaneous failures across tasks/notes, sessions,
-  // confidence marks and flashcard scheduling collapse to whichever is
-  // present first in this list; dismissing clears all of them. Failures on
-  // multiple unrelated resources at once is rare enough that this is a
-  // deliberate simplification, not an oversight.
-  const cloudError = cloud.error || cloudSessions.error || cloudConfidence.error || cloudFlashcards.error;
+  // confidence marks, flashcard scheduling and quiz attempts collapse to
+  // whichever is present first in this list; dismissing clears all of them.
+  // Failures on multiple unrelated resources at once is rare enough that
+  // this is a deliberate simplification, not an oversight.
+  const cloudError = cloud.error || cloudSessions.error || cloudConfidence.error || cloudFlashcards.error || cloudQuizAttempts.error;
   const clearCloudError = () => {
-    cloud.clearError(); cloudSessions.clearError(); cloudConfidence.clearError(); cloudFlashcards.clearError();
+    cloud.clearError(); cloudSessions.clearError(); cloudConfidence.clearError();
+    cloudFlashcards.clearError(); cloudQuizAttempts.clearError();
   };
 
   const value = useMemo(() => ({
-    state: { ...base.state, tasks: cloud.tasks, notes: cloud.notes, sessions: cloudSessions.sessions, confidence: cloudConfidence.confidence },
+    state: {
+      ...base.state, tasks: cloud.tasks, notes: cloud.notes, sessions: cloudSessions.sessions,
+      confidence: cloudConfidence.confidence, attempts: cloudQuizAttempts.attempts
+    },
     update: base.update,
     actions: cloudActive
       ? { ...base.actions, ...cloud.actions, ...cloudConfidence.actions }
       : base.actions,
     migration: { ...migration, cloudError, clearCloudError }
-  }), [base.state, base.update, base.actions, cloud.tasks, cloud.notes, cloud.actions, cloudSessions.sessions, cloudConfidence.confidence, cloudConfidence.actions, cloudActive, migration, cloudError]);
+  }), [base.state, base.update, base.actions, cloud.tasks, cloud.notes, cloud.actions, cloudSessions.sessions, cloudConfidence.confidence, cloudConfidence.actions, cloudQuizAttempts.attempts, cloudActive, migration, cloudError]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

@@ -8,6 +8,7 @@
 import { supabase } from './supabaseClient.js';
 import { CARDS } from '../data/flashcards.js';
 import { today, dayIndex } from './dates.js';
+import { isCorrect } from './logic.js';
 
 function assertNoError(context, error) {
   if (error) throw new Error(`[cloudData] ${context} failed: ${error.message}`);
@@ -278,4 +279,80 @@ export async function cloudSetFlashcardSrs(userId, indexToId, index, entry) {
 export async function cloudDeleteAllFlashcardSrs(userId) {
   const { error } = await supabase.from('flashcard_srs_state').delete().eq('user_id', userId);
   assertNoError('resetting flashcard SRS state', error);
+}
+
+// Quiz questions are matched by (part, question_text) -- the same pair
+// quiz_questions carries a UNIQUE constraint on, and the same shape
+// migrateToSupabase.js would use if it ever needed to (it doesn't: quiz
+// question identity was never part of the local `attempts` shape, only
+// added now that live submissions can capture it).
+async function fetchQuizQuestionMap() {
+  const { data, error } = await supabase.from('quiz_questions').select('id, part, question_text');
+  assertNoError('fetching quiz questions for attempt mapping', error);
+  const map = new Map();
+  for (const row of data ?? []) {
+    map.set(`${row.part}|${row.question_text}`, row.id);
+  }
+  return map;
+}
+
+function formatAttemptWhen(isoTimestamp) {
+  return new Date(isoTimestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
+function attemptFromRow(row) {
+  return { when: formatAttemptWhen(row.submitted_at), mode: row.mode, correct: row.correct, total: row.total, pct: row.pct };
+}
+
+export async function fetchQuizAttempts(userId) {
+  const { data, error } = await supabase
+    .from('quiz_attempts')
+    .select('*')
+    .eq('user_id', userId)
+    .order('submitted_at', { ascending: false });
+  assertNoError('fetching quiz attempts', error);
+  return (data || []).map(attemptFromRow);
+}
+
+// `quiz`/`answers` are the actual question objects and qIndex->response map
+// for the attempt just submitted (Quiz.jsx keeps both around through the
+// 'result' stage for its own Answer review screen, so they're still exactly
+// right at the point this runs). Unlike migrateToSupabase.js -- which had no
+// historical per-question data to migrate and deliberately left
+// quiz_attempt_answers empty -- a live submission has everything needed to
+// fill it in properly.
+export async function cloudAddQuizAttempt(userId, { mode, correct, total, pct, quiz, answers }) {
+  const questionMap = await fetchQuizQuestionMap();
+  const questionIds = quiz.map(q => {
+    const id = questionMap.get(`${q.part}|${q.q}`);
+    if (!id) throw new Error(`[cloudData] could not resolve quiz question to a seeded row: "${q.q}"`);
+    return id;
+  });
+
+  const { data: attemptRow, error: attemptError } = await supabase
+    .from('quiz_attempts')
+    .insert({ user_id: userId, mode, correct, total, pct, question_ids: questionIds })
+    .select()
+    .single();
+  assertNoError('adding quiz attempt', attemptError);
+
+  if (quiz.length) {
+    const answerRows = quiz.map((q, i) => ({
+      attempt_id: attemptRow.id,
+      question_id: questionIds[i],
+      user_id: userId,
+      response: answers[i] ?? null,
+      is_correct: isCorrect(q, answers[i])
+    }));
+    const { error: answersError } = await supabase.from('quiz_attempt_answers').insert(answerRows);
+    // The quiz_attempts row above is already committed -- there's no
+    // cross-table transaction available from a browser client (the same
+    // limitation migrateToSupabase.js documents for its own multi-table
+    // writes) -- so a failure here leaves a real summary row with no
+    // matching answers rather than nothing at all. Surfaced loudly via
+    // assertNoError, not silently swallowed.
+    assertNoError('adding quiz attempt answers', answersError);
+  }
+
+  return attemptFromRow(attemptRow);
 }

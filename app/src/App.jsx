@@ -11,6 +11,7 @@ import Quiz from './components/Quiz.jsx';
 import Flashcards from './components/Flashcards.jsx';
 import Notes from './components/Notes.jsx';
 import Badges from './components/Badges.jsx';
+import MigrationBanner from './components/MigrationBanner.jsx';
 
 const VIEW_COMPONENTS = {
   dash: Dashboard,
@@ -35,6 +36,7 @@ function Shell() {
         <QuoteBar />
         <ViewComponent />
       </main>
+      <MigrationBanner />
     </div>
   );
 }

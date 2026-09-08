@@ -205,6 +205,14 @@ export async function cloudSetTopicConfidence(userId, keyToTopicId, key, level) 
   assertNoError('updating topic confidence', error);
 }
 
+// Phase 5, step 3: mirrors "Reset my progress" clearing local confidence to
+// {} -- the same delete-all-rows treatment already used for study sessions
+// and quiz attempts (step 2) and flashcard SRS state (Phase 3E step 4).
+export async function cloudDeleteAllTopicConfidence(userId) {
+  const { error } = await supabase.from('topic_confidence').delete().eq('user_id', userId);
+  assertNoError('resetting topic confidence', error);
+}
+
 // Local flashcard SRS keys are stringified indexes ("0".."9") into CARDS
 // (data/flashcards.js); flashcard_srs_state keys on card_id (uuid). Same
 // front-text matching migrateToSupabase.js uses for the one-time migration

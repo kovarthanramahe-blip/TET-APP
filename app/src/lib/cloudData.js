@@ -356,3 +356,53 @@ export async function cloudAddQuizAttempt(userId, { mode, correct, total, pct, q
 
   return attemptFromRow(attemptRow);
 }
+
+// Phase 3E, step 6: profiles is a single row per user (id = auth.users.id,
+// auto-created by the handle_new_user() trigger on signup), so unlike every
+// other resource so far there is no id-resolution/mapping and no insert
+// path -- only select/update against a row that's guaranteed to exist.
+//
+// LOCAL_TO_COLUMN is the only place local setting names map to columns, and
+// cloudUpdateProfileSettings() only ever writes columns it finds in that
+// map -- an unrecognized key throws rather than passing through, which is
+// what keeps this function from ever being able to touch
+// profiles.migrated_at (exclusively owned by migrateToSupabase.js's
+// idempotency gate) even by accident.
+const LOCAL_TO_COLUMN = {
+  theme: 'theme',
+  level: 'exam_level',
+  pomodoroMinutes: 'pomodoro_minutes',
+  breakMinutes: 'break_minutes',
+  showQuotes: 'show_quotes'
+};
+
+function settingsFromRow(row) {
+  return {
+    theme: row.theme,
+    level: row.exam_level,
+    pomodoroMinutes: row.pomodoro_minutes,
+    breakMinutes: row.break_minutes,
+    showQuotes: row.show_quotes
+  };
+}
+
+export async function fetchProfileSettings(userId) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('theme, exam_level, pomodoro_minutes, break_minutes, show_quotes')
+    .eq('id', userId)
+    .single();
+  assertNoError('fetching profile settings', error);
+  return settingsFromRow(data);
+}
+
+export async function cloudUpdateProfileSettings(userId, patch) {
+  const dbPatch = {};
+  for (const key of Object.keys(patch)) {
+    const column = LOCAL_TO_COLUMN[key];
+    if (!column) throw new Error(`[cloudData] unknown profile setting "${key}"`);
+    dbPatch[column] = patch[key];
+  }
+  const { error } = await supabase.from('profiles').update(dbPatch).eq('id', userId);
+  assertNoError('updating profile settings', error);
+}

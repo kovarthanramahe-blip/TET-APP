@@ -6,6 +6,7 @@ import { useCloudStudySessions } from './hooks/useCloudStudySessions.js';
 import { useCloudTopicConfidence } from './hooks/useCloudTopicConfidence.js';
 import { useCloudFlashcardSrs } from './hooks/useCloudFlashcardSrs.js';
 import { useCloudQuizAttempts } from './hooks/useCloudQuizAttempts.js';
+import { useCloudProfileSettings } from './hooks/useCloudProfileSettings.js';
 
 const AppContext = createContext(null);
 
@@ -62,17 +63,37 @@ export function AppProvider({ children }) {
     baseAnswers: base.state.answers
   });
 
+  // No state/actions override for this one either, same reasoning as
+  // flashcard scheduling above: it hydrates/mirrors base.state's five
+  // settings fields directly, so toggleTheme/setLevel/setPomodoroMinutes/
+  // setBreakMinutes/setShowQuotes in useAppState.js stay untouched and
+  // these fields flow through from base.state as they always have.
+  const cloudProfileSettings = useCloudProfileSettings({
+    active: cloudActive,
+    userId: migration.userId,
+    baseSettings: {
+      theme: base.state.theme,
+      level: base.state.level,
+      pomodoroMinutes: base.state.pomodoroMinutes,
+      breakMinutes: base.state.breakMinutes,
+      showQuotes: base.state.showQuotes
+    },
+    baseUpdate: base.update
+  });
+
   // All cloud hooks report errors into this one slot -- MigrationBanner.jsx
   // shows a single generic "couldn't sync" banner rather than one per
   // resource, so simultaneous failures across tasks/notes, sessions,
-  // confidence marks, flashcard scheduling and quiz attempts collapse to
-  // whichever is present first in this list; dismissing clears all of them.
-  // Failures on multiple unrelated resources at once is rare enough that
-  // this is a deliberate simplification, not an oversight.
-  const cloudError = cloud.error || cloudSessions.error || cloudConfidence.error || cloudFlashcards.error || cloudQuizAttempts.error;
+  // confidence marks, flashcard scheduling, quiz attempts and profile
+  // settings collapse to whichever is present first in this list;
+  // dismissing clears all of them. Failures on multiple unrelated resources
+  // at once is rare enough that this is a deliberate simplification, not an
+  // oversight.
+  const cloudError = cloud.error || cloudSessions.error || cloudConfidence.error || cloudFlashcards.error
+    || cloudQuizAttempts.error || cloudProfileSettings.error;
   const clearCloudError = () => {
     cloud.clearError(); cloudSessions.clearError(); cloudConfidence.clearError();
-    cloudFlashcards.clearError(); cloudQuizAttempts.clearError();
+    cloudFlashcards.clearError(); cloudQuizAttempts.clearError(); cloudProfileSettings.clearError();
   };
 
   const value = useMemo(() => ({

@@ -127,3 +127,67 @@ export async function cloudAddStudySession(userId, { label, mins, date }) {
   });
   assertNoError('adding study session', error);
 }
+
+// Local topic_confidence keys look like
+// "Level 1 (PRT)|Child Development & Pedagogy|Theories of learning" --
+// built by topicKey() in logic.js as level|moduleName|topicName. The
+// topic_confidence table stores a topic_id (uuid) instead, so every read/
+// write needs this key <-> id mapping. migrateToSupabase.js already
+// resolves the identical mapping the same way (a `topics` select joining
+// modules/courses) for the one-time migration; that file is reviewed,
+// tested and left alone per Phase 3D, so this is a deliberate, small
+// duplication of that lookup rather than a shared import.
+async function fetchTopicKeyMaps() {
+  const { data, error } = await supabase
+    .from('topics')
+    .select('id, name, modules ( name, courses ( title ) )');
+  assertNoError('fetching topics for confidence mapping', error);
+
+  const keyToTopicId = new Map();
+  const topicIdToKey = new Map();
+  for (const row of data ?? []) {
+    const courseTitle = row.modules?.courses?.title;
+    const moduleName = row.modules?.name;
+    if (!courseTitle || !moduleName) continue;
+    const key = `${courseTitle}|${moduleName}|${row.name}`;
+    keyToTopicId.set(key, row.id);
+    topicIdToKey.set(row.id, key);
+  }
+  return { keyToTopicId, topicIdToKey };
+}
+
+// Returns both the local-shape confidence object (for merging into app
+// state) and the keyToTopicId map the caller needs to hold onto for any
+// later cloudSetTopicConfidence() calls -- reference data that doesn't
+// change while the app is open, so it's fetched once per activation
+// rather than on every mark.
+export async function fetchTopicConfidence(userId) {
+  const { keyToTopicId, topicIdToKey } = await fetchTopicKeyMaps();
+  const { data, error } = await supabase
+    .from('topic_confidence')
+    .select('topic_id, level')
+    .eq('user_id', userId);
+  assertNoError('fetching topic confidence', error);
+
+  const confidence = {};
+  for (const row of data ?? []) {
+    const key = topicIdToKey.get(row.topic_id);
+    // A row whose topic_id isn't in the current reference-data map would
+    // mean the seeded topics changed since this mark was saved -- silently
+    // dropping it would make a real mark disappear without explanation, so
+    // surface it the same way migrateToSupabase.js treats an unresolvable
+    // key: loudly, not silently.
+    if (!key) throw new Error(`[cloudData] topic confidence row references an unknown topic_id "${row.topic_id}"`);
+    confidence[key] = row.level;
+  }
+  return { confidence, keyToTopicId };
+}
+
+export async function cloudSetTopicConfidence(userId, keyToTopicId, key, level) {
+  const topicId = keyToTopicId.get(key);
+  if (!topicId) throw new Error(`[cloudData] unknown topic for confidence key "${key}"`);
+  const { error } = await supabase
+    .from('topic_confidence')
+    .upsert({ user_id: userId, topic_id: topicId, level }, { onConflict: 'user_id,topic_id' });
+  assertNoError('updating topic confidence', error);
+}

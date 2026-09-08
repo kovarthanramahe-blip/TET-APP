@@ -3,6 +3,7 @@ import { useAppState } from './hooks/useAppState.js';
 import { useSupabaseMigration } from './hooks/useSupabaseMigration.js';
 import { useCloudTasksAndNotes } from './hooks/useCloudTasksAndNotes.js';
 import { useCloudStudySessions } from './hooks/useCloudStudySessions.js';
+import { useCloudTopicConfidence } from './hooks/useCloudTopicConfidence.js';
 
 const AppContext = createContext(null);
 
@@ -33,23 +34,30 @@ export function AppProvider({ children }) {
     baseSessions: base.state.sessions
   });
 
-  // Both cloud hooks report errors into this one slot -- MigrationBanner.jsx
+  const cloudConfidence = useCloudTopicConfidence({
+    active: cloudActive,
+    userId: migration.userId,
+    baseConfidence: base.state.confidence
+  });
+
+  // All cloud hooks report errors into this one slot -- MigrationBanner.jsx
   // shows a single generic "couldn't sync" banner rather than one per
-  // resource, so simultaneous failures across tasks/notes and sessions
-  // collapse to whichever is present (tasks/notes takes priority; dismissing
-  // clears both). Failures on two unrelated resources at once is rare
-  // enough that this is a deliberate simplification, not an oversight.
-  const cloudError = cloud.error || cloudSessions.error;
-  const clearCloudError = () => { cloud.clearError(); cloudSessions.clearError(); };
+  // resource, so simultaneous failures across tasks/notes, sessions and
+  // confidence marks collapse to whichever is present first in this list;
+  // dismissing clears all of them. Failures on multiple unrelated resources
+  // at once is rare enough that this is a deliberate simplification, not an
+  // oversight.
+  const cloudError = cloud.error || cloudSessions.error || cloudConfidence.error;
+  const clearCloudError = () => { cloud.clearError(); cloudSessions.clearError(); cloudConfidence.clearError(); };
 
   const value = useMemo(() => ({
-    state: { ...base.state, tasks: cloud.tasks, notes: cloud.notes, sessions: cloudSessions.sessions },
+    state: { ...base.state, tasks: cloud.tasks, notes: cloud.notes, sessions: cloudSessions.sessions, confidence: cloudConfidence.confidence },
     update: base.update,
     actions: cloudActive
-      ? { ...base.actions, ...cloud.actions }
+      ? { ...base.actions, ...cloud.actions, ...cloudConfidence.actions }
       : base.actions,
     migration: { ...migration, cloudError, clearCloudError }
-  }), [base.state, base.update, base.actions, cloud.tasks, cloud.notes, cloud.actions, cloudSessions.sessions, cloudActive, migration, cloudError]);
+  }), [base.state, base.update, base.actions, cloud.tasks, cloud.notes, cloud.actions, cloudSessions.sessions, cloudConfidence.confidence, cloudConfidence.actions, cloudActive, migration, cloudError]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

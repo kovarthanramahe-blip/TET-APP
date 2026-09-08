@@ -71,6 +71,15 @@ export async function cloudDeleteTask(userId, id) {
   assertNoError('deleting task', error);
 }
 
+// Phase 5, step 4: mirrors "Reset my progress" marking every local task not
+// done -- a bulk update, not a delete (tasks keep existing, only their
+// done flag changes), unlike the delete-all treatment used for
+// sessions/attempts/confidence in steps 2-3.
+export async function cloudResetAllTasksDone(userId) {
+  const { error } = await supabase.from('tasks').update({ done: false }).eq('user_id', userId);
+  assertNoError('resetting task done flags', error);
+}
+
 export async function cloudAddNote(userId, { title, topic, body }) {
   const { data, error } = await supabase
     .from('notes')

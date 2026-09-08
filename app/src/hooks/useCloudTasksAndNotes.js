@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchTasks, fetchNotes, cloudAddTask, cloudUpdateTask, cloudDeleteTask,
-  cloudAddNote, cloudUpdateNote, cloudDeleteNote
+  cloudAddNote, cloudUpdateNote, cloudDeleteNote, cloudResetAllTasksDone
 } from '../lib/cloudData.js';
 
 // Phase 3E, step 1: once `active`, this hook becomes the source of truth for
@@ -21,16 +21,27 @@ import {
 // updates local state immediately and debounces the actual write per note
 // id, coalescing rapid edits into one request. A failed save is reported
 // but never rolls back what the user typed.
+//
+// Phase 5, step 4: toggleTask/addTask/removeTask fully replace the base
+// actions while active, so base.state.tasks is never touched by anything
+// except "Reset my progress" (resetProgressState() marking every local
+// task not done). That makes any change to baseState.tasks while active a
+// reliable Reset signal, watched below and mirrored as a bulk
+// done=false update -- not a delete, since Reset doesn't remove tasks --
+// closing the gap the original Phase 3E step 1 write-up didn't cover
+// (notes are untouched by Reset and need no equivalent).
 export function useCloudTasksAndNotes({ active, userId, baseState, baseUpdate, baseActions }) {
   const [tasks, setTasks] = useState(null); // null = not loaded yet
   const [notes, setNotes] = useState(null);
   const [error, setError] = useState('');
   const pendingNoteWrites = useRef(new Map()); // noteId -> { timer, patch }
+  const lastBaseTasksRef = useRef(null);
 
   useEffect(() => {
     if (!active) {
       setTasks(null);
       setNotes(null);
+      lastBaseTasksRef.current = null;
       return;
     }
     let cancelled = false;
@@ -40,6 +51,11 @@ export function useCloudTasksAndNotes({ active, userId, baseState, baseUpdate, b
         if (!cancelled) {
           setTasks(t);
           setNotes(n);
+          // Baseline against the local tasks array *as of now* -- anything
+          // already there (e.g. from the one-time migration) is not a
+          // reset just because it doesn't match what was fetched. See the
+          // reset-detection effect below.
+          lastBaseTasksRef.current = baseState.tasks;
           setError('');
         }
       } catch (e) {
@@ -47,7 +63,22 @@ export function useCloudTasksAndNotes({ active, userId, baseState, baseUpdate, b
       }
     })();
     return () => { cancelled = true; };
+    // baseState is intentionally not a dependency here -- this effect
+    // should only (re-)run the initial fetch when cloud sync turns on/off
+    // or the user changes, not every time it's baselined below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, userId]);
+
+  useEffect(() => {
+    if (!active || tasks === null) return;
+    if (baseState.tasks === lastBaseTasksRef.current) return; // unchanged
+    lastBaseTasksRef.current = baseState.tasks;
+
+    setTasks(prev => (prev || []).map(t => ({ ...t, done: false })));
+    cloudResetAllTasksDone(userId).catch(e => {
+      setError(e?.message || 'Could not reset your tasks.');
+    });
+  }, [active, tasks, baseState.tasks, userId]);
 
   // Flush any pending debounced note writes on unmount so an edit made
   // right before navigating away/logging out isn't silently dropped.

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchStudySessions, cloudAddStudySession } from '../lib/cloudData.js';
+import { fetchStudySessions, cloudAddStudySession, cloudDeleteAllStudySessions } from '../lib/cloudData.js';
 
 // Phase 3E, step 2: once `active`, this hook becomes the source of truth for
 // study sessions, replacing the localStorage-backed list from
@@ -18,9 +18,12 @@ import { fetchStudySessions, cloudAddStudySession } from '../lib/cloudData.js';
 // immediately (so the cloud-driven Dashboard/StudySessions stats update in
 // lockstep with what the timer/log button just did) and fire-and-forgets
 // the actual Supabase insert, the same optimistic-write tradeoff already
-// used for note edits. A shrink (only "Reset my progress" does this today,
-// clearing sessions to []) is not mirrored to the cloud -- see the Phase 3E
-// step 2 write-up for why that's a known, disclosed gap rather than a bug.
+// used for note edits.
+//
+// A shrink only ever happens one way: "Reset my progress" clears sessions
+// to [] in one shot (nothing else in the app removes sessions). Phase 5
+// step 2 mirrors that specific shrink-to-empty as a full cloud delete,
+// closing the gap the original Phase 3E step 2 write-up disclosed.
 export function useCloudStudySessions({ active, userId, baseSessions }) {
   const [sessions, setSessions] = useState(null); // null = not loaded yet
   const [error, setError] = useState('');
@@ -56,9 +59,25 @@ export function useCloudStudySessions({ active, userId, baseSessions }) {
 
   useEffect(() => {
     if (!active || sessions === null) return;
-    const grew = baseSessions.length - lastBaseLength.current;
+    const previousLength = lastBaseLength.current;
+    const grew = baseSessions.length - previousLength;
     lastBaseLength.current = baseSessions.length;
-    if (grew <= 0) return; // unchanged, or shrank (e.g. Reset my progress)
+    if (grew === 0) return; // unchanged
+
+    if (grew < 0) {
+      // The only shrink this app produces is Reset my progress clearing
+      // sessions to [] in one shot -- nothing removes sessions one at a
+      // time. A shrink that isn't all the way to zero can't happen today;
+      // if it somehow did, this deliberately does nothing (same as before
+      // this change) rather than guess at a partial cloud delete.
+      if (baseSessions.length === 0 && previousLength > 0) {
+        setSessions([]);
+        cloudDeleteAllStudySessions(userId).catch(e => {
+          setError(e?.message || 'Could not reset your study sessions.');
+        });
+      }
+      return;
+    }
 
     // logSessionState() always prepends, so the newly added entries are
     // exactly the first `grew` items, most-recently-added first.

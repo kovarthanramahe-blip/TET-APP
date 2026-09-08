@@ -112,8 +112,10 @@ export async function fetchStudySessions(userId) {
   return (data || []).map(sessionFromRow);
 }
 
-// Sessions are append-only in this app (no edit/delete UI, no local id) --
-// there is no cloudUpdateStudySession/cloudDeleteStudySession to match.
+// Sessions are append-only in this app (no per-row edit/delete UI, no local
+// id) -- there is no cloudUpdateStudySession/cloudDeleteStudySession to
+// match. The only bulk operation is cloudDeleteAllStudySessions below, for
+// "Reset my progress".
 export async function cloudAddStudySession(userId, { label, mins, date }) {
   const { error } = await supabase.from('study_sessions').insert({
     user_id: userId,
@@ -129,6 +131,14 @@ export async function cloudAddStudySession(userId, { label, mins, date }) {
     source: typeof label === 'string' && label.startsWith('Pomodoro —') ? 'pomodoro' : 'manual'
   });
   assertNoError('adding study session', error);
+}
+
+// Phase 5, step 2: mirrors "Reset my progress" clearing local sessions to
+// [] -- the same delete-all-rows treatment already used for flashcard SRS
+// state (Step 4) when its local state clears to {}.
+export async function cloudDeleteAllStudySessions(userId) {
+  const { error } = await supabase.from('study_sessions').delete().eq('user_id', userId);
+  assertNoError('resetting study sessions', error);
 }
 
 // Local topic_confidence keys look like
@@ -355,6 +365,16 @@ export async function cloudAddQuizAttempt(userId, { mode, correct, total, pct, q
   }
 
   return attemptFromRow(attemptRow);
+}
+
+// Phase 5, step 2: mirrors "Reset my progress" clearing local attempts to
+// [] -- deleting quiz_attempts rows is sufficient on its own:
+// quiz_attempt_answers.attempt_id has "on delete cascade" (per the Phase 3B
+// ownership-FK fix), so this single delete also removes every matching
+// answer row without a separate call.
+export async function cloudDeleteAllQuizAttempts(userId) {
+  const { error } = await supabase.from('quiz_attempts').delete().eq('user_id', userId);
+  assertNoError('resetting quiz attempts', error);
 }
 
 // Phase 3E, step 6: profiles is a single row per user (id = auth.users.id,

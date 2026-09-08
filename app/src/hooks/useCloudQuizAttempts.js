@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchQuizAttempts, cloudAddQuizAttempt } from '../lib/cloudData.js';
+import { fetchQuizAttempts, cloudAddQuizAttempt, cloudDeleteAllQuizAttempts } from '../lib/cloudData.js';
 
 // Phase 3E, step 5: once `active`, this hook becomes the source of truth for
 // quiz attempt history, replacing the localStorage-backed list from
@@ -18,12 +18,12 @@ import { fetchQuizAttempts, cloudAddQuizAttempt } from '../lib/cloudData.js';
 // reads those at the moment it detects a new attempt to build the
 // quiz_attempt_answers rows migrateToSupabase.js deliberately left empty.
 //
-// Known gap, same category as sessions/confidence: "Reset my progress"
-// clears local attempts to [], but that's a shrink, and shrinks are
-// ignored here -- unlike flashcard scheduling, there's no "absence means
-// default" reading for a historical test result, so clearing cloud history
-// on a local reset would be a more destructive, not obviously correct,
-// mirror. Deferred along with the others.
+// "Reset my progress" clears local attempts to [] in one shot -- nothing
+// else removes attempts one at a time. Phase 5 step 2 mirrors that
+// shrink-to-empty as a full cloud delete of quiz_attempts; the matching
+// quiz_attempt_answers rows cascade-delete on their own (see
+// cloudDeleteAllQuizAttempts in cloudData.js), closing the gap the
+// original Phase 3E step 5 write-up disclosed.
 export function useCloudQuizAttempts({ active, userId, baseAttempts, baseQuiz, baseAnswers }) {
   const [attempts, setAttempts] = useState(null); // null = not loaded yet
   const [error, setError] = useState('');
@@ -53,9 +53,24 @@ export function useCloudQuizAttempts({ active, userId, baseAttempts, baseQuiz, b
 
   useEffect(() => {
     if (!active || attempts === null) return;
-    const grew = baseAttempts.length - lastBaseLength.current;
+    const previousLength = lastBaseLength.current;
+    const grew = baseAttempts.length - previousLength;
     lastBaseLength.current = baseAttempts.length;
-    if (grew <= 0) return; // unchanged, or shrank (e.g. Reset my progress)
+    if (grew === 0) return; // unchanged
+
+    if (grew < 0) {
+      // Only Reset my progress shrinks this array, and only to zero. A
+      // partial shrink can't happen today; if it somehow did, this
+      // deliberately does nothing (same as before this change) rather than
+      // guess at a partial cloud delete.
+      if (baseAttempts.length === 0 && previousLength > 0) {
+        setAttempts([]);
+        cloudDeleteAllQuizAttempts(userId).catch(e => {
+          setError(e?.message || 'Could not reset your test history.');
+        });
+      }
+      return;
+    }
 
     // Only one quiz can ever be in flight at a time, so grew is always 1 in
     // practice; state.quiz/state.answers reflect only the newest attempt

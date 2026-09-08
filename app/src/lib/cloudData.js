@@ -308,6 +308,26 @@ export async function cloudDeleteAllFlashcardSrs(userId) {
   assertNoError('resetting flashcard SRS state', error);
 }
 
+// Phase 5, step 6: the flashcard grading counter (feeds the Card Shark
+// badge) lives on profiles.reviews -- a single-row-per-user column, same
+// shape as the profile settings fields, but synced from
+// useCloudFlashcardSrs.js instead of useCloudProfileSettings.js since it
+// changes in the exact same gradeState() action as `cards`, not alongside
+// theme/level/pomodoroMinutes/breakMinutes/showQuotes. Kept as its own pair
+// of functions (not folded into fetchProfileSettings/
+// cloudUpdateProfileSettings's LOCAL_TO_COLUMN map) so the two hooks never
+// share a write path to the same table.
+export async function fetchReviews(userId) {
+  const { data, error } = await supabase.from('profiles').select('reviews').eq('id', userId).single();
+  assertNoError('fetching reviews', error);
+  return data.reviews;
+}
+
+export async function cloudSetReviews(userId, reviews) {
+  const { error } = await supabase.from('profiles').update({ reviews }).eq('id', userId);
+  assertNoError('updating reviews', error);
+}
+
 // Quiz questions are matched by (part, question_text) -- the same pair
 // quiz_questions carries a UNIQUE constraint on, and the same shape
 // migrateToSupabase.js would use if it ever needed to (it doesn't: quiz

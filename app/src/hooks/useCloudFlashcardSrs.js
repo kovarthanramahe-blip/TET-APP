@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchFlashcardSrs, cloudSetFlashcardSrs, cloudDeleteAllFlashcardSrs } from '../lib/cloudData.js';
+import { fetchFlashcardSrs, cloudSetFlashcardSrs, cloudDeleteAllFlashcardSrs, fetchReviews, cloudSetReviews } from '../lib/cloudData.js';
 
 // Phase 3E, step 4: once `active`, keeps flashcard SRS scheduling in sync
 // with Supabase. This one is structurally different from tasks/notes/
@@ -26,27 +26,43 @@ import { fetchFlashcardSrs, cloudSetFlashcardSrs, cloudDeleteAllFlashcardSrs } f
 // baseUpdate(). This mirrors the same small loading-window tradeoff already
 // accepted for tasks/notes/sessions; a full merge-on-load was considered
 // and rejected as unnecessary complexity working against Cloud-primary.
-export function useCloudFlashcardSrs({ active, userId, baseCards, baseUpdate }) {
+//
+// Phase 5, step 6: `reviews` (the flashcard grading counter, feeding the
+// Card Shark badge) hydrates and syncs alongside `cards` here rather than
+// in useCloudProfileSettings.js -- gradeState() changes both `cards` and
+// `reviews` in the exact same state transition, and resetProgressState()
+// clears both together too, so treating them as one unit keeps the two
+// values from ever hydrating or resetting out of step with each other.
+export function useCloudFlashcardSrs({ active, userId, baseCards, baseReviews, baseUpdate }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
   const lastSyncedCards = useRef(null);
+  const lastSyncedReviews = useRef(null);
   const indexToIdRef = useRef(null);
 
   useEffect(() => {
     if (!active) {
       setLoaded(false);
       lastSyncedCards.current = null;
+      lastSyncedReviews.current = null;
       indexToIdRef.current = null;
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-        const { cards: cloudCards, indexToId } = await fetchFlashcardSrs(userId);
+        const [{ cards: cloudCards, indexToId }, cloudReviews] = await Promise.all([
+          fetchFlashcardSrs(userId),
+          fetchReviews(userId)
+        ]);
         if (cancelled) return;
-        baseUpdate({ cards: cloudCards });
+        baseUpdate({ cards: cloudCards, reviews: cloudReviews });
         indexToIdRef.current = indexToId;
+        // Recorded as already-in-sync *before* the watch effect below can
+        // ever see it, so this hydration is never mistaken for a local
+        // change needing to be written back out.
         lastSyncedCards.current = cloudCards;
+        lastSyncedReviews.current = cloudReviews;
         setError('');
         setLoaded(true);
       } catch (e) {
@@ -58,26 +74,43 @@ export function useCloudFlashcardSrs({ active, userId, baseCards, baseUpdate }) 
 
   useEffect(() => {
     if (!active || !loaded) return;
-    const prev = lastSyncedCards.current || {};
-    const next = baseCards || {};
-    lastSyncedCards.current = next;
+    const prevCards = lastSyncedCards.current || {};
+    const nextCards = baseCards || {};
+    lastSyncedCards.current = nextCards;
 
-    if (Object.keys(next).length === 0 && Object.keys(prev).length > 0) {
+    const prevReviews = lastSyncedReviews.current;
+    const nextReviews = baseReviews;
+    lastSyncedReviews.current = nextReviews;
+
+    const cardsCleared = Object.keys(nextCards).length === 0 && Object.keys(prevCards).length > 0;
+    if (cardsCleared) {
       cloudDeleteAllFlashcardSrs(userId).catch(e => {
         setError(e?.message || 'Could not reset your flashcard scheduling.');
       });
-      return;
+    } else {
+      const map = indexToIdRef.current;
+      if (map) {
+        Object.keys(nextCards).forEach(key => {
+          if (nextCards[key] === prevCards[key]) return; // logic.js always produces a new object per changed key
+          cloudSetFlashcardSrs(userId, map, Number(key), nextCards[key]).catch(e => {
+            setError(e?.message || 'Could not save your flashcard scheduling.');
+          });
+        });
+      }
     }
 
-    const map = indexToIdRef.current;
-    if (!map) return;
-    Object.keys(next).forEach(key => {
-      if (next[key] === prev[key]) return; // logic.js always produces a new object per changed key
-      cloudSetFlashcardSrs(userId, map, Number(key), next[key]).catch(e => {
-        setError(e?.message || 'Could not save your flashcard scheduling.');
+    // gradeState() increments this by 1 on every grade; resetProgressState()
+    // (and Flashcards.jsx's "Reset scheduling", via resetSrs -- though that
+    // one leaves reviews untouched, since it only clears cards/cardIndex/
+    // cardRevealed) is the only other writer. Checked independently of the
+    // cards branch above so a cloud write failure on one never blocks the
+    // other.
+    if (nextReviews !== prevReviews) {
+      cloudSetReviews(userId, nextReviews).catch(e => {
+        setError(e?.message || 'Could not save your review count.');
       });
-    });
-  }, [active, loaded, baseCards, userId]);
+    }
+  }, [active, loaded, baseCards, baseReviews, userId]);
 
   return { loaded, error, clearError: () => setError('') };
 }

@@ -132,6 +132,10 @@ export async function migrateLocalStorageToSupabase(user) {
 
   // ==========================================================================
   // 1) profiles -- settings
+  // `reviews` (Phase 5, step 6) carries the flashcard grading counter
+  // across into its new cloud column the same way every other setting
+  // here already does -- a plain snapshot of whatever's in localStorage
+  // at migration time, nothing derived or recomputed.
   // ==========================================================================
   const { error: settingsError } = await supabase
     .from('profiles')
@@ -140,7 +144,8 @@ export async function migrateLocalStorageToSupabase(user) {
       exam_level: state.level ?? 'Level 1 (PRT)',
       pomodoro_minutes: state.pomodoroMinutes ?? 25,
       break_minutes: state.breakMinutes ?? 5,
-      show_quotes: state.showQuotes ?? true
+      show_quotes: state.showQuotes ?? true,
+      reviews: state.reviews ?? 0
     })
     .eq('id', userId);
   assertNoError('updating profile settings', settingsError);

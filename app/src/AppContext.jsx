@@ -83,6 +83,7 @@ export function AppProvider({ children }) {
     active: cloudActive,
     userId: migration.userId,
     baseCards: base.state.cards,
+    baseReviews: base.state.reviews,
     baseUpdate: base.update
   });
 

@@ -351,6 +351,110 @@ export async function cloudDeleteAllFlashcardSrs(userId) {
   assertNoError('resetting flashcard SRS state', error);
 }
 
+// Phase 6, step 3: custom_flashcards is a separate, user-owned table from
+// the shared/read-only `flashcards` seed set above -- see
+// 20260909_custom_flashcards.sql for why the two can't share a table
+// (no user_id column or write policies on `flashcards`, a UNIQUE
+// constraint on `front`, and fetchFlashcardIndexMaps()'s hard assertion
+// that its row count equals CARDS.length). Content and SM-2 scheduling
+// fields live together in one row here, since a custom card is always 1:1
+// with its owner -- there's no shared reference copy to keep separate from
+// per-user progress the way flashcards/flashcard_srs_state are split.
+function customCardFromRow(row, topicIdToKey) {
+  return {
+    id: row.id, front: row.front, back: row.back, category: row.category || '',
+    // Same read-path rationale as noteFromRow()/sessionFromRow() above: a
+    // stale/unresolvable topic_id degrades to null rather than throwing --
+    // the card's own front/back/category are never at risk, only this
+    // optional structured link.
+    topicId: (row.topic_id && topicIdToKey.get(row.topic_id)) || null,
+    ease: Number(row.ease), interval: row.interval_days, reps: row.reps,
+    due: dayIndex(row.due_date)
+  };
+}
+
+// topicIdToKey is the caller's responsibility to fetch (via
+// fetchTopicKeyMaps()) and pass in -- same shared-reference-data approach
+// used for notes/study_sessions.
+export async function fetchCustomCards(userId, topicIdToKey) {
+  const { data, error } = await supabase
+    .from('custom_flashcards')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  assertNoError('fetching custom flashcards', error);
+  return (data || []).map(row => customCardFromRow(row, topicIdToKey));
+}
+
+// keyToTopicId resolution follows the same write-path rule as
+// cloudAddNote()/cloudAddStudySession(): an unresolvable key throws, since
+// the card creation form only ever offers keys built from the same live
+// syllabus data the map was built from. The new card starts at the same
+// fresh SM-2 defaults cardState() uses locally for a never-reviewed seeded
+// card (ease 2.5, interval 0, reps 0, due today) -- due_date's own column
+// default already matches "due today", so only the row's real id/fields
+// need echoing back into the local shape.
+export async function cloudAddCustomCard(userId, keyToTopicId, { front, back, category, topicId }) {
+  const resolvedTopicId = topicId ? keyToTopicId.get(topicId) : null;
+  if (topicId && !resolvedTopicId) throw new Error(`[cloudData] unknown topic for custom flashcard link "${topicId}"`);
+  const { data, error } = await supabase
+    .from('custom_flashcards')
+    .insert({ user_id: userId, front, back, category: category || '', topic_id: resolvedTopicId })
+    .select()
+    .single();
+  assertNoError('adding custom flashcard', error);
+  return {
+    id: data.id, front: data.front, back: data.back, category: data.category || '', topicId: topicId || null,
+    ease: Number(data.ease), interval: data.interval_days, reps: data.reps, due: dayIndex(data.due_date)
+  };
+}
+
+// Content-only edits (front/back/category/topicId) -- NOT the SM-2
+// scheduling fields, which only ever change via cloudGradeCustomCard()
+// below. Keeping the two write paths separate means an in-progress edit to
+// a card's text can never race with or clobber a review grade landing at
+// the same time, and vice versa.
+export async function cloudUpdateCustomCard(userId, keyToTopicId, id, patch) {
+  const dbPatch = { updated_at: new Date().toISOString() };
+  if ('front' in patch) dbPatch.front = patch.front;
+  if ('back' in patch) dbPatch.back = patch.back;
+  if ('category' in patch) dbPatch.category = patch.category || '';
+  if ('topicId' in patch) {
+    if (patch.topicId) {
+      const resolvedTopicId = keyToTopicId.get(patch.topicId);
+      if (!resolvedTopicId) throw new Error(`[cloudData] unknown topic for custom flashcard link "${patch.topicId}"`);
+      dbPatch.topic_id = resolvedTopicId;
+    } else {
+      dbPatch.topic_id = null;
+    }
+  }
+  const { error } = await supabase.from('custom_flashcards').update(dbPatch).eq('id', id).eq('user_id', userId);
+  assertNoError('updating custom flashcard', error);
+}
+
+// srsPatch is the already-computed new {ease, interval, reps, due} --
+// the SM-2 transition math itself lives in exactly one place, logic.js
+// (gradeState() for the seeded deck; a parallel function for custom cards
+// is added in a later step), not duplicated here. `due` is a dayIndex()
+// integer, same as cardState()'s shape, converted to a real date the same
+// way cloudSetFlashcardSrs() does for the seeded deck.
+export async function cloudGradeCustomCard(userId, id, { ease, interval, reps, due }) {
+  const { error } = await supabase
+    .from('custom_flashcards')
+    .update({
+      ease, interval_days: interval, reps, due_date: dateStringFromDayIndex(due),
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .eq('user_id', userId);
+  assertNoError('grading custom flashcard', error);
+}
+
+export async function cloudDeleteCustomCard(userId, id) {
+  const { error } = await supabase.from('custom_flashcards').delete().eq('id', id).eq('user_id', userId);
+  assertNoError('deleting custom flashcard', error);
+}
+
 // Phase 5, step 6: the flashcard grading counter (feeds the Card Shark
 // badge) lives on profiles.reviews -- a single-row-per-user column, same
 // shape as the profile settings fields, but synced from

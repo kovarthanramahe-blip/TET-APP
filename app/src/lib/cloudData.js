@@ -17,8 +17,16 @@ function assertNoError(context, error) {
 function taskFromRow(row) {
   return { id: row.id, title: row.title, priority: row.priority, due: row.due_date || '', done: row.done };
 }
-function noteFromRow(row) {
-  return { id: row.id, title: row.title, topic: row.topic_label || '', body: row.body_md || '' };
+function noteFromRow(row, topicIdToKey) {
+  return {
+    id: row.id, title: row.title, topic: row.topic_label || '', body: row.body_md || '',
+    // Phase 6, step 1: unlike topic_confidence/flashcards, an unresolvable
+    // topic_id here degrades to null rather than throwing -- the note's own
+    // title/body/topic_label are never at risk, only this optional
+    // structured link, so silently dropping just that link is preferable to
+    // blocking the whole notes list from loading over stale reference data.
+    topicId: (row.topic_id && topicIdToKey.get(row.topic_id)) || null
+  };
 }
 function sessionFromRow(row) {
   // Sessions have no id/edit/delete UI in the app (StudySessions.jsx keys
@@ -33,10 +41,15 @@ export async function fetchTasks(userId) {
   return (data || []).map(taskFromRow);
 }
 
-export async function fetchNotes(userId) {
+// topicIdToKey is the caller's responsibility to fetch (via
+// fetchTopicKeyMaps() below) and pass in -- the caller (useCloudTasksAndNotes.js)
+// also needs the other half of that pair (keyToTopicId) for
+// cloudAddNote/cloudUpdateNote, so it fetches both once per activation
+// rather than this function re-fetching reference data on its own.
+export async function fetchNotes(userId, topicIdToKey) {
   const { data, error } = await supabase.from('notes').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
   assertNoError('fetching notes', error);
-  return (data || []).map(noteFromRow);
+  return (data || []).map(row => noteFromRow(row, topicIdToKey));
 }
 
 export async function cloudAddTask(userId, { title, priority, due }) {
@@ -80,30 +93,44 @@ export async function cloudResetAllTasksDone(userId) {
   assertNoError('resetting task done flags', error);
 }
 
-export async function cloudAddNote(userId, { title, topic, body }) {
+// keyToTopicId resolves the "level|module|topic" string Notes.jsx's topic
+// picker produces into a real topic_id. Unlike the read path in
+// noteFromRow(), an unresolvable key here throws -- the picker only ever
+// offers keys built from the live syllabus data the same map was built
+// from, so a miss here means something is actually wrong, not just stale
+// reference data on an old row.
+export async function cloudAddNote(userId, keyToTopicId, { title, topic, topicId, body }) {
+  const resolvedTopicId = topicId ? keyToTopicId.get(topicId) : null;
+  if (topicId && !resolvedTopicId) throw new Error(`[cloudData] unknown topic for note link "${topicId}"`);
   const { data, error } = await supabase
     .from('notes')
-    .insert({ user_id: userId, title, topic_label: topic || null, topic_id: null, body_md: body || '' })
+    .insert({ user_id: userId, title, topic_label: topic || null, topic_id: resolvedTopicId, body_md: body || '' })
     .select()
     .single();
   assertNoError('adding note', error);
-  return noteFromRow(data);
+  return { id: data.id, title: data.title, topic: data.topic_label || '', body: data.body_md || '', topicId: topicId || null };
 }
 
-export async function cloudUpdateNote(userId, id, patch) {
+export async function cloudUpdateNote(userId, keyToTopicId, id, patch) {
   const dbPatch = { updated_at: new Date().toISOString() };
   if ('title' in patch) dbPatch.title = patch.title;
   if ('topic' in patch) dbPatch.topic_label = patch.topic || null;
   if ('body' in patch) dbPatch.body_md = patch.body ?? '';
-  const { data, error } = await supabase
+  if ('topicId' in patch) {
+    if (patch.topicId) {
+      const resolvedTopicId = keyToTopicId.get(patch.topicId);
+      if (!resolvedTopicId) throw new Error(`[cloudData] unknown topic for note link "${patch.topicId}"`);
+      dbPatch.topic_id = resolvedTopicId;
+    } else {
+      dbPatch.topic_id = null;
+    }
+  }
+  const { error } = await supabase
     .from('notes')
     .update(dbPatch)
     .eq('id', id)
-    .eq('user_id', userId)
-    .select()
-    .single();
+    .eq('user_id', userId);
   assertNoError('updating note', error);
-  return noteFromRow(data);
 }
 
 export async function cloudDeleteNote(userId, id) {
@@ -150,16 +177,18 @@ export async function cloudDeleteAllStudySessions(userId) {
   assertNoError('resetting study sessions', error);
 }
 
-// Local topic_confidence keys look like
+// Local topic keys look like
 // "Level 1 (PRT)|Child Development & Pedagogy|Theories of learning" --
-// built by topicKey() in logic.js as level|moduleName|topicName. The
-// topic_confidence table stores a topic_id (uuid) instead, so every read/
-// write needs this key <-> id mapping. migrateToSupabase.js already
-// resolves the identical mapping the same way (a `topics` select joining
-// modules/courses) for the one-time migration; that file is reviewed,
-// tested and left alone per Phase 3D, so this is a deliberate, small
-// duplication of that lookup rather than a shared import.
-async function fetchTopicKeyMaps() {
+// built by topicKey() in logic.js as level|moduleName|topicName. Both
+// topic_confidence and notes store a topic_id (uuid) instead, so every
+// read/write for either needs this key <-> id mapping -- exported so
+// useCloudTasksAndNotes.js (Phase 6, step 1) can share it with
+// useCloudTopicConfidence.js rather than duplicating the lookup a third
+// time. migrateToSupabase.js resolves the identical mapping the same way
+// (a `topics` select joining modules/courses) for the one-time migration;
+// that file is reviewed, tested and left alone per Phase 3D, so it keeps
+// its own independent copy rather than importing this one.
+export async function fetchTopicKeyMaps() {
   const { data, error } = await supabase
     .from('topics')
     .select('id, name, modules ( name, courses ( title ) )');

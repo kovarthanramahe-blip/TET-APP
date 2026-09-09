@@ -32,7 +32,13 @@ export default function Syllabus() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
               {m.topics.map(t => {
                 const c = confOf(s, m.name, t[0]);
-                const cycle = () => actions.cycleConfidence(topicKey(s.level, m.name, t[0]), c);
+                const key = topicKey(s.level, m.name, t[0]);
+                const cycle = () => actions.cycleConfidence(key, c);
+                const topicNotes = s.notes.filter(n => n.topicId === key);
+                const openNotes = () => {
+                  actions.setView('notes');
+                  if (topicNotes.length) actions.setActiveNote(topicNotes[0].id);
+                };
                 return (
                   <div key={t[0]} style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button type="button" onClick={cycle} style={{
@@ -44,6 +50,14 @@ export default function Syllabus() {
                       <div style={{ fontSize: '14px' }}>{t[0]}</div>
                       <div style={{ fontSize: '12px', opacity: .6 }}>{t[1]}</div>
                     </div>
+                    {topicNotes.length > 0 && (
+                      <button type="button" onClick={openNotes} style={{
+                        fontSize: '11px', opacity: .7, border: 'none', background: 'transparent',
+                        cursor: 'pointer', textDecoration: 'underline', padding: 0, color: 'inherit'
+                      }}>
+                        {topicNotes.length} note{topicNotes.length > 1 ? 's' : ''}
+                      </button>
+                    )}
                     <button type="button" onClick={cycle} style={{
                       ...chip(c > 0, true),
                       color: c ? confColor(c) : 'var(--color-text)',

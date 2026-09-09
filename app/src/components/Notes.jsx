@@ -2,10 +2,20 @@ import React from 'react';
 import { useApp } from '../AppContext.jsx';
 import { navBtn } from '../lib/styleHelpers.js';
 import { renderMarkdown } from '../lib/markdown.js';
+import { modulesFor, topicKey } from '../lib/logic.js';
 
 export default function Notes() {
   const { state: s, actions } = useApp();
-  const note = s.notes.find(n => n.id === s.activeNote) || s.notes[0] || { id: '', title: '', topic: '', body: '' };
+  const note = s.notes.find(n => n.id === s.activeNote) || s.notes[0] || { id: '', title: '', topic: '', topicId: null, body: '' };
+
+  const pickTopic = (key) => {
+    if (!key) { actions.updateNote(note.id, { topicId: null }); return; }
+    // key is "level|module|topic" (topicKey() in logic.js) -- reuse it
+    // directly rather than re-parsing the module/topic name back out
+    // wherever possible, but the free-text label still needs them split out.
+    const [, moduleName, topicName] = key.split('|');
+    actions.updateNote(note.id, { topicId: key, topic: moduleName + ' · ' + topicName });
+  };
 
   return (
     <section style={{ display: 'grid', gridTemplateColumns: 'minmax(180px,240px) 1fr', gap: 'var(--space-6)', alignItems: 'start' }}>
@@ -26,6 +36,19 @@ export default function Notes() {
           <div className="field" style={{ flex: '2 1 200px' }}>
             <label>Title</label>
             <input className="input" type="text" value={note.title} onChange={e => actions.updateNote(note.id, { title: e.target.value })} />
+          </div>
+          <div className="field" style={{ flex: '1 1 200px' }}>
+            <label>Link to topic</label>
+            <select className="input" value={note.topicId || ''} onChange={e => pickTopic(e.target.value)}>
+              <option value="">— Not linked —</option>
+              {modulesFor(s).map(m => (
+                <optgroup key={m.name} label={m.name}>
+                  {m.topics.map(t => (
+                    <option key={t[0]} value={topicKey(s.level, m.name, t[0])}>{t[0]}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
           </div>
           <div className="field" style={{ flex: '1 1 180px' }}>
             <label>Attached to</label>

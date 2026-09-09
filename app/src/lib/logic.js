@@ -28,8 +28,8 @@ export function seedState() {
       { id: 't4', title: 'Full-length mock exam under timed conditions', priority: 'High', due: seedDay(6), done: false }
     ],
     notes: [
-      { id: 'n1', title: 'Learning theories cheat sheet', topic: 'CDP · Theories of learning', body: '# Learning theories\n\n**Piaget** — cognitive constructivism, four stages, *schema* / assimilation / accommodation.\n\n**Vygotsky** — social constructivism.\n\n- ZPD: gap between solo and assisted performance\n- Scaffolding fades as competence grows\n- Language precedes thought\n\n**Bruner** — spiral curriculum; enactive, iconic, symbolic.\n\n> HTET favours applied questions: given a classroom scene, name the theorist.' },
-      { id: 'n2', title: 'Haryana GK — quick facts', topic: 'General Studies · Haryana GK', body: '# Haryana quick facts\n\n- Formed **1 November 1966**\n- Capital: Chandigarh\n- Districts: 22\n- Rivers: Yamuna, Ghaggar, Markanda\n- Folk dance: Ghoomar, Khoria\n\n`HTET tip:` one or two questions almost every year on formation and symbols.' }
+      { id: 'n1', title: 'Learning theories cheat sheet', topic: 'CDP · Theories of learning', topicId: 'Level 1 (PRT)|Child Development & Pedagogy|Theories of learning', body: '# Learning theories\n\n**Piaget** — cognitive constructivism, four stages, *schema* / assimilation / accommodation.\n\n**Vygotsky** — social constructivism.\n\n- ZPD: gap between solo and assisted performance\n- Scaffolding fades as competence grows\n- Language precedes thought\n\n**Bruner** — spiral curriculum; enactive, iconic, symbolic.\n\n> HTET favours applied questions: given a classroom scene, name the theorist.' },
+      { id: 'n2', title: 'Haryana GK — quick facts', topic: 'General Studies · Haryana GK', topicId: null, body: '# Haryana quick facts\n\n- Formed **1 November 1966**\n- Capital: Chandigarh\n- Districts: 22\n- Rivers: Yamuna, Ghaggar, Markanda\n- Folk dance: Ghoomar, Khoria\n\n`HTET tip:` one or two questions almost every year on formation and symbols.' }
     ],
     cards: {},
     attempts: [],

@@ -119,7 +119,7 @@ export function useAppState() {
     updateNote: (id, patch) => update(s => ({ notes: s.notes.map(n => n.id === id ? { ...n, ...patch } : n) })),
     addNote: () => setState(s => {
       const id = 'n' + Date.now();
-      return { ...s, notes: [{ id, title: 'New note', topic: s.level, body: '# New note\n\n- point one\n' }, ...s.notes], activeNote: id };
+      return { ...s, notes: [{ id, title: 'New note', topic: s.level, topicId: null, body: '# New note\n\n- point one\n' }, ...s.notes], activeNote: id };
     }),
     deleteNote: (id) => setState(s => {
       const rest = s.notes.filter(n => n.id !== id);

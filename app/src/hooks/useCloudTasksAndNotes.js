@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchTasks, fetchNotes, cloudAddTask, cloudUpdateTask, cloudDeleteTask,
-  cloudAddNote, cloudUpdateNote, cloudDeleteNote, cloudResetAllTasksDone
+  cloudAddNote, cloudUpdateNote, cloudDeleteNote, cloudResetAllTasksDone,
+  fetchTopicKeyMaps
 } from '../lib/cloudData.js';
 
 // Phase 3E, step 1: once `active`, this hook becomes the source of truth for
@@ -36,21 +37,30 @@ export function useCloudTasksAndNotes({ active, userId, baseState, baseUpdate, b
   const [error, setError] = useState('');
   const pendingNoteWrites = useRef(new Map()); // noteId -> { timer, patch }
   const lastBaseTasksRef = useRef(null);
+  // Phase 6, step 1: the "level|module|topic" <-> topic_id maps notes'
+  // topic links need. Fetched once per activation (reference data, doesn't
+  // change while the app is open) via the same fetchTopicKeyMaps()
+  // useCloudTopicConfidence.js already uses, rather than duplicating that
+  // lookup a third time.
+  const topicMapsRef = useRef(null);
 
   useEffect(() => {
     if (!active) {
       setTasks(null);
       setNotes(null);
       lastBaseTasksRef.current = null;
+      topicMapsRef.current = null;
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-        const [t, n] = await Promise.all([fetchTasks(userId), fetchNotes(userId)]);
+        const [t, topicMaps] = await Promise.all([fetchTasks(userId), fetchTopicKeyMaps()]);
+        const n = await fetchNotes(userId, topicMaps.topicIdToKey);
         if (!cancelled) {
           setTasks(t);
           setNotes(n);
+          topicMapsRef.current = topicMaps;
           // Baseline against the local tasks array *as of now* -- anything
           // already there (e.g. from the one-time migration) is not a
           // reset just because it doesn't match what was fetched. See the
@@ -83,9 +93,10 @@ export function useCloudTasksAndNotes({ active, userId, baseState, baseUpdate, b
   // Flush any pending debounced note writes on unmount so an edit made
   // right before navigating away/logging out isn't silently dropped.
   useEffect(() => () => {
+    const keyToTopicId = topicMapsRef.current?.keyToTopicId || new Map();
     for (const { timer, id, patch } of pendingNoteWrites.current.values()) {
       clearTimeout(timer);
-      cloudUpdateNote(userId, id, patch).catch(() => { /* best-effort on unmount */ });
+      cloudUpdateNote(userId, keyToTopicId, id, patch).catch(() => { /* best-effort on unmount */ });
     }
     pendingNoteWrites.current.clear();
   }, [userId]);
@@ -125,7 +136,8 @@ export function useCloudTasksAndNotes({ active, userId, baseState, baseUpdate, b
 
   const addNote = useCallback(async () => {
     try {
-      const row = await cloudAddNote(userId, { title: 'New note', topic: baseState.level, body: '# New note\n\n- point one\n' });
+      const keyToTopicId = topicMapsRef.current?.keyToTopicId || new Map();
+      const row = await cloudAddNote(userId, keyToTopicId, { title: 'New note', topic: baseState.level, topicId: null, body: '# New note\n\n- point one\n' });
       setNotes(prev => [row, ...(prev || [])]);
       baseActions.setActiveNote(row.id);
     } catch (e) {
@@ -142,7 +154,8 @@ export function useCloudTasksAndNotes({ active, userId, baseState, baseUpdate, b
     const mergedPatch = { ...(existing?.patch || {}), ...patch };
     const timer = setTimeout(() => {
       pendingNoteWrites.current.delete(id);
-      cloudUpdateNote(userId, id, mergedPatch).catch(e => {
+      const keyToTopicId = topicMapsRef.current?.keyToTopicId || new Map();
+      cloudUpdateNote(userId, keyToTopicId, id, mergedPatch).catch(e => {
         setError(e?.message || 'Could not save your note.');
       });
     }, 600);

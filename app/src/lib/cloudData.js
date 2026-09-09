@@ -603,7 +603,11 @@ const LOCAL_TO_COLUMN = {
   level: 'exam_level',
   pomodoroMinutes: 'pomodoro_minutes',
   breakMinutes: 'break_minutes',
-  showQuotes: 'show_quotes'
+  showQuotes: 'show_quotes',
+  // Phase 8: study goal & exam countdown -- same profiles row, same
+  // generic map/hook (useCloudProfileSettings.js), no new table.
+  examDate: 'exam_date',
+  dailyGoalMinutes: 'daily_goal_minutes'
 };
 
 function settingsFromRow(row) {
@@ -612,14 +616,16 @@ function settingsFromRow(row) {
     level: row.exam_level,
     pomodoroMinutes: row.pomodoro_minutes,
     breakMinutes: row.break_minutes,
-    showQuotes: row.show_quotes
+    showQuotes: row.show_quotes,
+    examDate: row.exam_date,
+    dailyGoalMinutes: row.daily_goal_minutes
   };
 }
 
 export async function fetchProfileSettings(userId) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('theme, exam_level, pomodoro_minutes, break_minutes, show_quotes')
+    .select('theme, exam_level, pomodoro_minutes, break_minutes, show_quotes, exam_date, daily_goal_minutes')
     .eq('id', userId)
     .single();
   assertNoError('fetching profile settings', error);

@@ -5,7 +5,8 @@ import {
   confColor, confName, taskViewModel, minutesByModule,
   dailyMinutesSeries, daysStudiedInRange, weeklyConsistency, minutesByTopic,
   quizAverageScore, quizPassRate, quizTrend, modulePerformance,
-  seededDeckProgress, customDeckProgress
+  seededDeckProgress, customDeckProgress,
+  daysUntilExam, todayGoalProgress, weeklyGoalProgress
 } from '../lib/logic.js';
 import { today, fmtWeekday, fmtShort } from '../lib/dates.js';
 import { chip, checkbox } from '../lib/styleHelpers.js';
@@ -25,6 +26,11 @@ export default function Dashboard() {
     { label: 'Tasks done', value: s.tasks.filter(t => t.done).length + '/' + s.tasks.length, sub: openTasks.length + ' open' },
     { label: 'Best test score', value: bestScore(s) + '%', sub: s.attempts.length + ' attempts · 60% qualifies' }
   ];
+
+  // Phase 8: study goal & exam countdown.
+  const examDays = daysUntilExam(s);
+  const todayGoal = todayGoalProgress(s);
+  const weekGoal = weeklyGoalProgress(s);
 
   // Phase 7: KPI row -- same stat-tile shape as `stats` above, one level
   // down in prominence (second row), summarizing the new analytics blocks
@@ -135,6 +141,52 @@ export default function Dashboard() {
             <div style={{ fontSize: '12px', opacity: .65 }}>{st.sub}</div>
           </div>
         ))}
+      </div>
+
+      <div className="card" style={{ padding: 'var(--space-4) var(--space-6)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+          <h4 style={{ margin: 0 }}>Study goal</h4>
+          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div className="field" style={{ margin: 0 }}>
+              <label>Exam date</label>
+              <input className="input" type="date" value={s.examDate || ''} onChange={e => actions.setExamDate(e.target.value)} />
+            </div>
+            <div className="field" style={{ margin: 0, width: '110px' }}>
+              <label>Daily goal (min)</label>
+              <input className="input" type="number" min={5} value={s.dailyGoalMinutes} onChange={e => actions.setDailyGoalMinutes(Math.max(5, Number(e.target.value) || 5))} />
+            </div>
+          </div>
+        </div>
+        <hr className="hr" style={{ margin: 'var(--space-3) 0' }} />
+        {examDays === null && (
+          <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>Set your exam date above to see a countdown here and in the sidebar.</p>
+        )}
+        {examDays !== null && (
+          <p style={{ fontSize: '14px', margin: '0 0 var(--space-4)' }}>
+            {examDays > 0 ? <strong>{examDays} day{examDays === 1 ? '' : 's'}</strong> : examDays === 0 ? <strong>Today</strong> : <strong>Passed</strong>}
+            {examDays > 0 ? ' until your exam.' : examDays === 0 ? ' is exam day.' : ' — update the date above if this is out of date.'}
+          </p>
+        )}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 'var(--space-4)' }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+              <span>Today</span>
+              <span style={{ fontFeatureSettings: "'tnum'", opacity: .7 }}>{todayGoal.done} / {todayGoal.goal} min</span>
+            </div>
+            <div style={{ height: '5px', background: 'var(--color-divider)', borderRadius: '3px', marginTop: '6px' }}>
+              <div style={{ width: todayGoal.pct + '%', height: '100%', borderRadius: '3px', background: todayGoal.pct >= 100 ? '#3f7d4e' : 'var(--color-accent)' }}></div>
+            </div>
+          </div>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+              <span>Last 7 days (avg)</span>
+              <span style={{ fontFeatureSettings: "'tnum'", opacity: .7 }}>{weekGoal.avg} / {weekGoal.goal} min</span>
+            </div>
+            <div style={{ height: '5px', background: 'var(--color-divider)', borderRadius: '3px', marginTop: '6px' }}>
+              <div style={{ width: weekGoal.pct + '%', height: '100%', borderRadius: '3px', background: weekGoal.pct >= 100 ? '#3f7d4e' : 'var(--color-accent)' }}></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 'var(--space-4)' }}>

@@ -121,7 +121,9 @@ export function AppProvider({ children }) {
       level: base.state.level,
       pomodoroMinutes: base.state.pomodoroMinutes,
       breakMinutes: base.state.breakMinutes,
-      showQuotes: base.state.showQuotes
+      showQuotes: base.state.showQuotes,
+      examDate: base.state.examDate,
+      dailyGoalMinutes: base.state.dailyGoalMinutes
     },
     baseUpdate: base.update
   });

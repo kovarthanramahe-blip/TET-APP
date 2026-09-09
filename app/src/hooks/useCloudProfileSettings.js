@@ -2,12 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { fetchProfileSettings, cloudUpdateProfileSettings } from '../lib/cloudData.js';
 import { phaseLength } from '../lib/logic.js';
 
-const SETTINGS_KEYS = ['theme', 'level', 'pomodoroMinutes', 'breakMinutes', 'showQuotes'];
-const DEBOUNCED_KEYS = new Set(['pomodoroMinutes', 'breakMinutes']);
+const SETTINGS_KEYS = ['theme', 'level', 'pomodoroMinutes', 'breakMinutes', 'showQuotes', 'examDate', 'dailyGoalMinutes'];
+// dailyGoalMinutes is a per-keystroke number input, same as pomodoro/break
+// minutes -- debounced for the same reason. examDate is a native date
+// picker (one onChange per full selection, not per keystroke), so it syncs
+// immediately like theme/level/showQuotes.
+const DEBOUNCED_KEYS = new Set(['pomodoroMinutes', 'breakMinutes', 'dailyGoalMinutes']);
 const DEBOUNCE_MS = 600; // matches the debounce already used for note edits (Step 1)
 
-// Phase 3E, step 6: once `active`, keeps the five profile/settings fields
-// (theme, level, pomodoroMinutes, breakMinutes, showQuotes) in sync with
+// Phase 3E, step 6: once `active`, keeps the profile/settings fields in
+// SETTINGS_KEYS (theme, level, pomodoroMinutes, breakMinutes, showQuotes,
+// and -- added in Phase 8 -- examDate/dailyGoalMinutes) in sync with
 // profiles. No state/actions override -- like flashcard SRS state in step
 // 4, this hook hydrates base.state directly (cloud wins on load, per the
 // already-agreed Cloud-primary strategy) and then watches it for local

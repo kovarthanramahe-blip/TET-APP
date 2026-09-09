@@ -77,6 +77,8 @@ export function useAppState() {
       return s.phase === 'break' && !s.running ? { ...next, remaining: phaseLength(next, 'break') } : next;
     }),
     setShowQuotes: (v) => update({ showQuotes: v }),
+    setExamDate: (v) => update({ examDate: v || null }),
+    setDailyGoalMinutes: (v) => update({ dailyGoalMinutes: v }),
 
     cycleConfidence: (key, current) => update(s => ({ confidence: { ...s.confidence, [key]: (current + 1) % 4 } })),
 

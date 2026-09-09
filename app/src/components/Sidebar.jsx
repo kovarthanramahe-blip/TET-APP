@@ -1,12 +1,13 @@
 import React from 'react';
 import { useApp } from '../AppContext.jsx';
-import { VIEWS, SYLLABUS, navBadgesFor } from '../lib/logic.js';
+import { VIEWS, SYLLABUS, navBadgesFor, daysUntilExam } from '../lib/logic.js';
 import { navBtn } from '../lib/styleHelpers.js';
 import AccountPanel from './AccountPanel.jsx';
 
 export default function Sidebar() {
   const { state, actions } = useApp();
   const navBadges = navBadgesFor(state);
+  const examDays = daysUntilExam(state);
 
   return (
     <aside style={{
@@ -23,6 +24,13 @@ export default function Sidebar() {
         }}>
           Haryana TET · Study Desk
         </div>
+        {examDays !== null && (
+          <div style={{ fontSize: '12px', marginTop: '10px', opacity: .8, fontFeatureSettings: "'tnum'" }}>
+            {examDays > 0 ? examDays + ' day' + (examDays === 1 ? '' : 's') + ' to your exam'
+              : examDays === 0 ? 'Exam is today'
+              : 'Exam date has passed'}
+          </div>
+        )}
       </div>
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>

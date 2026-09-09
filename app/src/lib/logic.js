@@ -45,7 +45,8 @@ export function seedState() {
     quiz: null, qIndex: 0, answers: {}, textAnswer: '', mockLeft: 0, revealed: false,
     cardIndex: 0, cardRevealed: false,
     confirmReset: false,
-    pomodoroMinutes: 25, breakMinutes: 5, showQuotes: true
+    pomodoroMinutes: 25, breakMinutes: 5, showQuotes: true,
+    examDate: null, dailyGoalMinutes: 60
   };
 }
 
@@ -224,6 +225,30 @@ export function modulePerformance(s, quizByPart) {
     const quizPct = qp && qp.total > 0 ? Math.round((qp.correct / qp.total) * 100) : null;
     return { name: m.name, confidencePct, quizPct, quizAttempts: qp ? qp.total : 0 };
   }).sort((a, b) => a.confidencePct - b.confidencePct);
+}
+
+// Phase 8: null when no exam date is set (never a fabricated countdown) --
+// same dayIndex()-diff approach taskViewModel() already uses for task due
+// dates, so a negative result (exam date already passed) reads the same
+// way an overdue task does, not as a special case.
+export function daysUntilExam(s) {
+  if (!s.examDate) return null;
+  return dayIndex(s.examDate) - dayIndex();
+}
+
+export function todayGoalProgress(s) {
+  const goal = Math.max(1, Number(s.dailyGoalMinutes) || 60);
+  const done = minutesOn(s, today());
+  return { goal, done, pct: Math.min(100, Math.round((done / goal) * 100)) };
+}
+
+// Average daily minutes over the last 7 days vs. the same daily goal --
+// reuses dailyMinutesSeries() rather than walking the calendar a third way.
+export function weeklyGoalProgress(s) {
+  const goal = Math.max(1, Number(s.dailyGoalMinutes) || 60);
+  const series = dailyMinutesSeries(s, 7);
+  const avg = Math.round(series.reduce((a, d) => a + d.mins, 0) / series.length);
+  return { goal, avg, pct: Math.min(100, Math.round((avg / goal) * 100)) };
 }
 
 export function seededDeckProgress(s) {

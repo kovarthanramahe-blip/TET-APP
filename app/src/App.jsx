@@ -12,6 +12,7 @@ import Flashcards from './components/Flashcards.jsx';
 import Notes from './components/Notes.jsx';
 import Badges from './components/Badges.jsx';
 import MigrationBanner from './components/MigrationBanner.jsx';
+import { useStudyReminders } from './hooks/useStudyReminders.js';
 
 const VIEW_COMPONENTS = {
   dash: Dashboard,
@@ -27,6 +28,7 @@ const VIEW_COMPONENTS = {
 function Shell() {
   const { state } = useApp();
   const ViewComponent = VIEW_COMPONENTS[state.view] || Dashboard;
+  useStudyReminders(state);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}>

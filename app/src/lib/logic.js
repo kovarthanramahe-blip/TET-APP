@@ -46,7 +46,8 @@ export function seedState() {
     cardIndex: 0, cardRevealed: false,
     confirmReset: false,
     pomodoroMinutes: 25, breakMinutes: 5, showQuotes: true,
-    examDate: null, dailyGoalMinutes: 60
+    examDate: null, dailyGoalMinutes: 60,
+    remindersEnabled: false
   };
 }
 
@@ -309,6 +310,29 @@ export function customDeckProgress(s) {
     total, reviewed, dueNow: dueCustomCards(s).length,
     avgEase: total ? s.customCards.reduce((a, c) => a + c.ease, 0) / total : 2.5
   };
+}
+
+// Phase 12: pure "what's worth reminding about right now" check, reusing
+// data already computed elsewhere (todayGoalProgress, dueCards/
+// dueCustomCards) rather than re-deriving any of it. Returns plain
+// sentences, not a notification itself -- useStudyReminders.js decides
+// when/whether to actually fire one, this just decides whether there's
+// anything true to say. An empty array means nothing is due, which is a
+// real, common state (goal already met, nothing due) -- never padded with
+// an invented reason just to have something to show.
+export function reminderReasons(s) {
+  const reasons = [];
+
+  const goal = todayGoalProgress(s);
+  if (goal.done < goal.goal) reasons.push(`You're at ${goal.done}/${goal.goal} min of today's study goal.`);
+
+  const dueToday = s.tasks.filter(t => !t.done && t.due && t.due <= today()).length;
+  if (dueToday > 0) reasons.push(`${dueToday} task${dueToday > 1 ? 's are' : ' is'} due or overdue.`);
+
+  const dueCardCount = dueCards(s).length + dueCustomCards(s).length;
+  if (dueCardCount > 0) reasons.push(`${dueCardCount} flashcard${dueCardCount > 1 ? 's are' : ' is'} ready for review.`);
+
+  return reasons;
 }
 
 export function confColor(c) {

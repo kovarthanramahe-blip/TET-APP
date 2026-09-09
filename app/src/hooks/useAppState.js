@@ -79,6 +79,7 @@ export function useAppState() {
     setShowQuotes: (v) => update({ showQuotes: v }),
     setExamDate: (v) => update({ examDate: v || null }),
     setDailyGoalMinutes: (v) => update({ dailyGoalMinutes: v }),
+    setRemindersEnabled: (v) => update({ remindersEnabled: v }),
 
     cycleConfidence: (key, current) => update(s => ({ confidence: { ...s.confidence, [key]: (current + 1) % 4 } })),
 

@@ -4,6 +4,7 @@ import { VIEWS, SYLLABUS, navBadgesFor, daysUntilExam } from '../lib/logic.js';
 import { navBtn } from '../lib/styleHelpers.js';
 import AccountPanel from './AccountPanel.jsx';
 import ExportPanel from './ExportPanel.jsx';
+import ReminderPanel from './ReminderPanel.jsx';
 
 export default function Sidebar() {
   const { state, actions } = useApp();
@@ -78,6 +79,7 @@ export default function Sidebar() {
         </button>
 
         <ExportPanel />
+        <ReminderPanel />
 
         <button
           type="button"

@@ -3,25 +3,33 @@ import {
   fetchCustomCards, cloudAddCustomCard, cloudUpdateCustomCard, cloudDeleteCustomCard,
   cloudGradeCustomCard, fetchTopicKeyMaps
 } from '../lib/cloudData.js';
+import { applySrsGrade } from '../lib/logic.js';
 
-// Phase 6, step 3 (cloud layer only -- this file is not wired into
-// AppContext.jsx yet, and there is no local/offline fallback for custom
-// cards yet either; both are later steps). Once active, this hook owns the
-// full custom-flashcards resource: unlike useCloudFlashcardSrs.js (which
-// only hydrates/mirrors base.state.cards for the fixed seeded deck, with no
-// actions of its own), custom cards are genuine per-user rows with real
-// CRUD, so this hook is shaped like useCloudTasksAndNotes.js instead --
-// it owns the array and returns an `actions` object.
+// Phase 6, step 3. Shaped like useCloudTasksAndNotes.js (real per-row CRUD,
+// an `actions` object AppContext.jsx spreads over base.actions when cloud
+// sync is on) rather than useCloudFlashcardSrs.js (which only hydrates/
+// mirrors base.state.cards for the fixed seeded deck and returns no
+// actions at all) -- custom cards are genuine user-owned rows, not
+// scheduling state layered onto fixed reference data.
 //
-// Grading: gradeCustomCard(id, srsPatch) takes the ALREADY-COMPUTED new
-// {ease, interval, reps, due} values rather than a raw grade 0-3. The SM-2
-// transition math itself belongs in exactly one place (logic.js) -- a
-// parallel function to gradeState() for custom cards is added in a later
-// step, once logic.js is in scope. This hook only ever persists whatever
-// numbers it's handed and mirrors them into local state optimistically,
-// the same "trust the caller's math" shape cloudSetFlashcardSrs() +
-// useCloudFlashcardSrs.js already use for the seeded deck.
-export function useCloudCustomCards({ active, userId }) {
+// baseState/baseUpdate are useAppState.js's own values, passed in the same
+// way useCloudTasksAndNotes.js takes them for tasks: addCustomCard() reads
+// the customCardFront/Back/Category/TopicId draft fields Flashcards.jsx's
+// create form writes to, and clears them via baseUpdate() on success --
+// the same shape as addTask()'s relationship to taskDraft/taskPriority/
+// taskDue. customCards also falls back to baseState.customCards when not
+// loaded/active, the same fallback every other cloud-backed resource in
+// this app uses (see useCloudTasksAndNotes.js's `tasks`/`notes`).
+//
+// gradeCustomCard(id, g) takes a raw SM-2 grade (0-3), matching the LOCAL
+// fallback action's signature exactly (useAppState.js's gradeCustomCard
+// calls gradeCustomCardState(s, id, g) directly) -- both paths compute the
+// identical transition via logic.js's applySrsGrade(), the same pure
+// function gradeState() uses for the seeded deck, so the actual math lives
+// in exactly one place and can never drift between the cloud and local
+// paths, and Flashcards.jsx can call actions.gradeCustomCard(id, g)
+// without caring which path is active.
+export function useCloudCustomCards({ active, userId, baseState, baseUpdate }) {
   const [customCards, setCustomCards] = useState(null); // null = not loaded yet
   const [error, setError] = useState('');
   // Reference data (level|module|topic <-> topic_id) for resolving each
@@ -52,18 +60,20 @@ export function useCloudCustomCards({ active, userId }) {
     return () => { cancelled = true; };
   }, [active, userId]);
 
-  const addCustomCard = useCallback(async ({ front, back, category, topicId }) => {
-    if (!front?.trim() || !back?.trim()) return;
+  const addCustomCard = useCallback(async () => {
+    if (!baseState.customCardFront.trim() || !baseState.customCardBack.trim()) return;
     try {
       const keyToTopicId = topicMapsRef.current?.keyToTopicId || new Map();
       const row = await cloudAddCustomCard(userId, keyToTopicId, {
-        front: front.trim(), back: back.trim(), category: (category || '').trim(), topicId: topicId || null
+        front: baseState.customCardFront.trim(), back: baseState.customCardBack.trim(),
+        category: baseState.customCardCategory.trim(), topicId: baseState.customCardTopicId
       });
       setCustomCards(prev => [row, ...(prev || [])]);
+      baseUpdate({ customCardFront: '', customCardBack: '', customCardCategory: '', customCardTopicId: null });
     } catch (e) {
       setError(e?.message || 'Could not add the flashcard.');
     }
-  }, [userId]);
+  }, [userId, baseState.customCardFront, baseState.customCardBack, baseState.customCardCategory, baseState.customCardTopicId, baseUpdate]);
 
   const updateCustomCard = useCallback(async (id, patch) => {
     try {
@@ -84,24 +94,27 @@ export function useCloudCustomCards({ active, userId }) {
     }
   }, [userId]);
 
-  const gradeCustomCard = useCallback(async (id, srsPatch) => {
+  const gradeCustomCard = useCallback(async (id, g) => {
+    const current = (customCards || []).find(c => c.id === id);
+    if (!current) return;
+    const graded = applySrsGrade(current, g);
     // Optimistic, like toggleTask/cloudUpdateTask -- grading is a single,
     // infrequent click, so update local state immediately and report a
     // failure without rolling back (same tradeoff every other action in
     // this app's cloud hooks makes).
-    setCustomCards(prev => (prev || []).map(c => (c.id === id ? { ...c, ...srsPatch } : c)));
+    setCustomCards(prev => (prev || []).map(c => (c.id === id ? graded : c)));
     try {
-      await cloudGradeCustomCard(userId, id, srsPatch);
+      await cloudGradeCustomCard(userId, id, { ease: graded.ease, interval: graded.interval, reps: graded.reps, due: graded.due });
     } catch (e) {
       setError(e?.message || 'Could not save your review.');
     }
-  }, [userId]);
+  }, [userId, customCards]);
 
   return {
     loaded: customCards !== null,
     error,
     clearError: () => setError(''),
-    customCards: customCards || [],
+    customCards: customCards !== null ? customCards : baseState.customCards,
     actions: { addCustomCard, updateCustomCard, deleteCustomCard, gradeCustomCard }
   };
 }

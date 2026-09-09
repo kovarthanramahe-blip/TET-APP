@@ -5,6 +5,7 @@ import { useCloudTasksAndNotes } from './hooks/useCloudTasksAndNotes.js';
 import { useCloudStudySessions } from './hooks/useCloudStudySessions.js';
 import { useCloudTopicConfidence } from './hooks/useCloudTopicConfidence.js';
 import { useCloudFlashcardSrs } from './hooks/useCloudFlashcardSrs.js';
+import { useCloudCustomCards } from './hooks/useCloudCustomCards.js';
 import { useCloudQuizAttempts } from './hooks/useCloudQuizAttempts.js';
 import { useCloudProfileSettings } from './hooks/useCloudProfileSettings.js';
 import { clearStoredState } from './lib/dataStore.js';
@@ -87,6 +88,18 @@ export function AppProvider({ children }) {
     baseUpdate: base.update
   });
 
+  // Phase 6, step 3: unlike cloudFlashcards above, this hook owns real
+  // per-row CRUD for custom_flashcards -- it needs baseState (for the
+  // create-form draft fields) and baseUpdate (to clear them on success),
+  // the same pair `cloud` takes for tasks' own draft fields, but not
+  // baseActions, since there's no equivalent of setActiveNote to drive.
+  const cloudCustomCards = useCloudCustomCards({
+    active: cloudActive,
+    userId: migration.userId,
+    baseState: base.state,
+    baseUpdate: base.update
+  });
+
   const cloudQuizAttempts = useCloudQuizAttempts({
     active: cloudActive,
     userId: migration.userId,
@@ -122,23 +135,24 @@ export function AppProvider({ children }) {
   // at once is rare enough that this is a deliberate simplification, not an
   // oversight.
   const cloudError = cloud.error || cloudSessions.error || cloudConfidence.error || cloudFlashcards.error
-    || cloudQuizAttempts.error || cloudProfileSettings.error;
+    || cloudCustomCards.error || cloudQuizAttempts.error || cloudProfileSettings.error;
   const clearCloudError = () => {
     cloud.clearError(); cloudSessions.clearError(); cloudConfidence.clearError();
-    cloudFlashcards.clearError(); cloudQuizAttempts.clearError(); cloudProfileSettings.clearError();
+    cloudFlashcards.clearError(); cloudCustomCards.clearError(); cloudQuizAttempts.clearError(); cloudProfileSettings.clearError();
   };
 
   const value = useMemo(() => ({
     state: {
       ...base.state, tasks: cloud.tasks, notes: cloud.notes, sessions: cloudSessions.sessions,
-      confidence: cloudConfidence.confidence, attempts: cloudQuizAttempts.attempts
+      confidence: cloudConfidence.confidence, attempts: cloudQuizAttempts.attempts,
+      customCards: cloudCustomCards.customCards
     },
     update: base.update,
     actions: cloudActive
-      ? { ...base.actions, ...cloud.actions, ...cloudConfidence.actions }
+      ? { ...base.actions, ...cloud.actions, ...cloudConfidence.actions, ...cloudCustomCards.actions }
       : base.actions,
     migration: { ...migration, cloudError, clearCloudError }
-  }), [base.state, base.update, base.actions, cloud.tasks, cloud.notes, cloud.actions, cloudSessions.sessions, cloudConfidence.confidence, cloudConfidence.actions, cloudQuizAttempts.attempts, cloudActive, migration, cloudError]);
+  }), [base.state, base.update, base.actions, cloud.tasks, cloud.notes, cloud.actions, cloudSessions.sessions, cloudConfidence.confidence, cloudConfidence.actions, cloudQuizAttempts.attempts, cloudCustomCards.customCards, cloudCustomCards.actions, cloudActive, migration, cloudError]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

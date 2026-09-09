@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   loadState, saveState, phaseLength, finishPhaseState, logSessionState,
-  gradeState, buildQuiz, submitQuizState, resetProgressState
+  gradeState, buildQuiz, submitQuizState, resetProgressState,
+  addCustomCardState, deleteCustomCardState, gradeCustomCardState
 } from '../lib/logic.js';
 
 export function useAppState() {
@@ -115,6 +116,16 @@ export function useAppState() {
     revealCard: (cardIdx) => update({ cardIndex: cardIdx, cardRevealed: true }),
     grade: (idx, g) => setState(s => gradeState(s, idx, g)),
     resetSrs: () => update({ cards: {}, cardRevealed: false, cardIndex: 0 }),
+
+    setCustomCardFront: (v) => update({ customCardFront: v }),
+    setCustomCardBack: (v) => update({ customCardBack: v }),
+    setCustomCardCategory: (v) => update({ customCardCategory: v }),
+    setCustomCardTopic: (topicId) => update({ customCardTopicId: topicId || null }),
+    addCustomCard: () => setState(s => addCustomCardState(s)),
+    updateCustomCard: (id, patch) => update(s => ({ customCards: s.customCards.map(c => c.id === id ? { ...c, ...patch } : c) })),
+    deleteCustomCard: (id) => setState(s => deleteCustomCardState(s, id)),
+    revealCustomCard: (id) => update({ customCardCurrentId: id, customCardRevealed: true }),
+    gradeCustomCard: (id, g) => setState(s => gradeCustomCardState(s, id, g)),
 
     setActiveNote: (id) => update({ activeNote: id }),
     updateNote: (id, patch) => update(s => ({ notes: s.notes.map(n => n.id === id ? { ...n, ...patch } : n) })),

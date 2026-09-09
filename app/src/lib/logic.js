@@ -32,10 +32,13 @@ export function seedState() {
       { id: 'n2', title: 'Haryana GK — quick facts', topic: 'General Studies · Haryana GK', topicId: null, body: '# Haryana quick facts\n\n- Formed **1 November 1966**\n- Capital: Chandigarh\n- Districts: 22\n- Rivers: Yamuna, Ghaggar, Markanda\n- Folk dance: Ghoomar, Khoria\n\n`HTET tip:` one or two questions almost every year on formation and symbols.' }
     ],
     cards: {},
+    customCards: [],
     attempts: [],
     reviews: 0,
     taskFilter: 'Open', taskDraft: '', taskDue: '', taskPriority: 'Medium',
     logLabel: '', logMinutes: 25, sessionTopicId: null,
+    customCardFront: '', customCardBack: '', customCardCategory: '', customCardTopicId: null,
+    customCardCurrentId: null, customCardRevealed: false,
     activeNote: 'n1',
     timerMode: 'Pomodoro 25/5', phase: 'focus', running: false, remaining: 1500, cycles: 0,
     quizStage: 'setup', quizTypes: ['mcq', 'tf'], quizParts: [], quizMode: 'Practice',
@@ -166,8 +169,13 @@ export function nextIntervalFor(cs, g) {
   return iv + 'd';
 }
 
-export function gradeState(s, idx, g) {
-  const c = { ...cardState(s, idx) };
+// The SM-2 transition itself, extracted so both the seeded deck's
+// gradeState() and custom cards' gradeCustomCardState() (Phase 6, step 3)
+// apply the exact same math to a { ease, interval, reps } shape without
+// duplicating it -- a plain extraction, not a behavior change: gradeState()
+// below computes byte-for-byte the same values it always did.
+export function applySrsGrade(cs, g) {
+  const c = { ...cs };
   if (g === 0) {
     c.reps = 0; c.interval = 0; c.ease = Math.max(1.3, c.ease - 0.2);
   } else {
@@ -176,10 +184,56 @@ export function gradeState(s, idx, g) {
     c.interval = c.reps === 1 ? 1 : c.reps === 2 ? 3 : Math.max(1, Math.round(c.interval * c.ease * (g === 1 ? 0.6 : 1)));
   }
   c.due = dayIndex() + c.interval;
+  return c;
+}
+
+export function gradeState(s, idx, g) {
+  const c = applySrsGrade(cardState(s, idx), g);
   const cards = { ...s.cards, [String(idx)]: c };
   const next = { ...s, cards, reviews: s.reviews + 1, cardRevealed: false };
   const due = dueCards(next);
   return { ...next, cardIndex: due.length ? due[0] : -1 };
+}
+
+// Phase 6, step 3: custom cards store content and SM-2 fields together in
+// one object (unlike the seeded deck's split between CARDS and s.cards),
+// so grading finds-and-replaces the matching array entry directly rather
+// than keying into a side map. Reuses s.reviews as the same "Card Shark"
+// counter the seeded deck feeds -- reviewing is reviewing regardless of
+// which deck a card came from.
+export function dueCustomCards(s) {
+  const d = dayIndex();
+  return s.customCards.filter(c => c.due <= d);
+}
+
+export function gradeCustomCardState(s, id, g) {
+  const customCards = s.customCards.map(c => (c.id === id ? applySrsGrade(c, g) : c));
+  const next = { ...s, customCards, reviews: s.reviews + 1, customCardRevealed: false };
+  const due = dueCustomCards(next);
+  return { ...next, customCardCurrentId: due.length ? due[0].id : null };
+}
+
+// Mirrors addTask()'s local-mode CRUD shape (client-generated id, draft
+// fields cleared on success) -- the cloud-active path instead goes through
+// cloudAddCustomCard()/useCloudCustomCards.js, which never calls this.
+// New cards start at the same fresh SM-2 defaults cardState() uses locally
+// for a never-reviewed seeded card.
+export function addCustomCardState(s) {
+  if (!s.customCardFront.trim() || !s.customCardBack.trim()) return s;
+  const card = {
+    id: 'card' + Date.now(), front: s.customCardFront.trim(), back: s.customCardBack.trim(),
+    category: s.customCardCategory.trim(), topicId: s.customCardTopicId,
+    ease: 2.5, interval: 0, reps: 0, due: dayIndex()
+  };
+  return {
+    ...s, customCards: [card, ...s.customCards],
+    customCardFront: '', customCardBack: '', customCardCategory: '', customCardTopicId: null
+  };
+}
+
+export function deleteCustomCardState(s, id) {
+  const rest = s.customCards.filter(c => c.id !== id);
+  return { ...s, customCards: rest, customCardCurrentId: s.customCardCurrentId === id ? null : s.customCardCurrentId };
 }
 
 export function buildQuiz(s) {
@@ -258,11 +312,11 @@ export function badgeMetricsFor(s) {
 
 export function navBadgesFor(s) {
   const openTasks = s.tasks.filter(t => !t.done);
-  const due = dueCards(s);
+  const dueCount = dueCards(s).length + dueCustomCards(s).length;
   const metrics = badgeMetricsFor(s);
   return {
     tasks: openTasks.length ? String(openTasks.length) : '',
-    cards: due.length ? String(due.length) : '',
+    cards: dueCount ? String(dueCount) : '',
     badges: String(BADGE_DEFS.filter(b => metrics[b.metric] >= b.target).length)
   };
 }

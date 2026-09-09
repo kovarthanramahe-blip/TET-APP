@@ -8,5 +8,7 @@ export const BADGE_DEFS = [
   { name: 'Distinction', desc: 'Score 85% or more on any test.', metric: 'best', target: 85 },
   { name: 'Green Ten', desc: 'Mark ten topics as mastered.', metric: 'mastered', target: 10 },
   { name: 'Task Machine', desc: 'Complete twenty study tasks.', metric: 'tasksDone', target: 20 },
-  { name: 'Card Shark', desc: 'Grade fifty flashcard reviews.', metric: 'reviews', target: 50 }
+  { name: 'Card Shark', desc: 'Grade fifty flashcard reviews.', metric: 'reviews', target: 50 },
+  { name: 'Goal Getter', desc: 'Hit your daily study goal 7 days running.', metric: 'goalStreak', target: 7 },
+  { name: 'Iron Discipline', desc: 'Hit your daily study goal 21 days running.', metric: 'goalStreak', target: 21 }
 ];

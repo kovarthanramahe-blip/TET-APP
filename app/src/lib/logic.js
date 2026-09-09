@@ -107,6 +107,22 @@ export function streakCount(s) {
   return n;
 }
 
+// Phase 11: same walk-backward-from-today shape as streakCount() above,
+// just requiring the daily goal to be MET (not merely > 0) each day --
+// feeds the new goal-streak achievement badges. dailyGoalMinutes always
+// has a real value (defaults to 60 in seedState()), so this works the same
+// way for a user who never explicitly visited the Dashboard's goal card.
+export function goalStreakCount(s) {
+  const goal = Math.max(1, Number(s.dailyGoalMinutes) || 60);
+  let n = 0;
+  for (let i = 0; i < 400; i++) {
+    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    if (minutesOn(s, d) >= goal) n++;
+    else if (i > 0) break;
+  }
+  return n;
+}
+
 export function modulesFor(s) { return SYLLABUS[s.level] || []; }
 export function topicKey(level, m, t) { return level + '|' + m + '|' + t; }
 export function confOf(s, m, t) { return s.confidence[topicKey(s.level, m, t)] || 0; }
@@ -468,6 +484,7 @@ export function badgeMetricsFor(s) {
     sessions: s.sessions.length,
     hours: Math.floor(mins / 60),
     streak: streakCount(s),
+    goalStreak: goalStreakCount(s),
     best: bestScore(s),
     mastered: masteredCount(s),
     tasksDone: s.tasks.filter(t => t.done).length,

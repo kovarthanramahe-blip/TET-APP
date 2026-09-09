@@ -642,3 +642,15 @@ export async function cloudUpdateProfileSettings(userId, patch) {
   const { error } = await supabase.from('profiles').update(dbPatch).eq('id', userId);
   assertNoError('updating profile settings', error);
 }
+
+// Phase 15: permanently deletes the signed-in user's account and, via
+// cascade, every row they own across every table. See
+// 20260909c_delete_own_account_function.sql for why this has to be a
+// SECURITY DEFINER Postgres function rather than a direct client-side
+// delete -- the anon key can never remove an auth.users row itself, and
+// the function is hard-gated to auth.uid() (no id parameter exists to
+// pass), so this can only ever delete the caller's own account.
+export async function deleteOwnAccount() {
+  const { error } = await supabase.rpc('delete_own_account');
+  assertNoError('deleting account', error);
+}

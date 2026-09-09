@@ -3,6 +3,7 @@ import { useApp } from '../AppContext.jsx';
 import { VIEWS, SYLLABUS, navBadgesFor, daysUntilExam } from '../lib/logic.js';
 import { navBtn } from '../lib/styleHelpers.js';
 import AccountPanel from './AccountPanel.jsx';
+import ExportPanel from './ExportPanel.jsx';
 
 export default function Sidebar() {
   const { state, actions } = useApp();
@@ -75,6 +76,8 @@ export default function Sidebar() {
           <span>{state.theme === 'dark' ? 'Dark' : 'Light'}</span>
           <span style={{ opacity: .6, fontSize: '12px' }}>theme</span>
         </button>
+
+        <ExportPanel />
 
         <button
           type="button"

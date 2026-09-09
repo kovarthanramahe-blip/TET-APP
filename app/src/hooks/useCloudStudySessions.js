@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchStudySessions, cloudAddStudySession, cloudDeleteAllStudySessions } from '../lib/cloudData.js';
+import { fetchStudySessions, cloudAddStudySession, cloudDeleteAllStudySessions, fetchTopicKeyMaps } from '../lib/cloudData.js';
 
 // Phase 3E, step 2: once `active`, this hook becomes the source of truth for
 // study sessions, replacing the localStorage-backed list from
@@ -28,18 +28,25 @@ export function useCloudStudySessions({ active, userId, baseSessions }) {
   const [sessions, setSessions] = useState(null); // null = not loaded yet
   const [error, setError] = useState('');
   const lastBaseLength = useRef(0);
+  // Phase 6, step 2: the "level|module|topic" <-> topic_id maps sessions'
+  // topic links need, fetched once per activation via the same
+  // fetchTopicKeyMaps() useCloudTasksAndNotes.js already uses.
+  const keyToTopicIdRef = useRef(new Map());
 
   useEffect(() => {
     if (!active) {
       setSessions(null);
+      keyToTopicIdRef.current = new Map();
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-        const rows = await fetchStudySessions(userId);
+        const topicMaps = await fetchTopicKeyMaps();
+        const rows = await fetchStudySessions(userId, topicMaps.topicIdToKey);
         if (!cancelled) {
           setSessions(rows);
+          keyToTopicIdRef.current = topicMaps.keyToTopicId;
           setError('');
           // Baseline against the local array *as of now* -- anything
           // already in it (including sessions from before this login, e.g.
@@ -87,7 +94,7 @@ export function useCloudStudySessions({ active, userId, baseSessions }) {
     // Persist oldest-of-the-batch first so created_at ordering in Supabase
     // matches the order they actually happened in.
     [...added].reverse().forEach(session => {
-      cloudAddStudySession(userId, session).catch(e => {
+      cloudAddStudySession(userId, keyToTopicIdRef.current, session).catch(e => {
         setError(e?.message || 'Could not save a study session.');
       });
     });

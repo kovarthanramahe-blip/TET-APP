@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../AppContext.jsx';
 import {
   totalMinutes, minutesOn, streakCount, bestScore, modulesFor, confOf,
-  confColor, confName, taskViewModel
+  confColor, confName, taskViewModel, minutesByModule
 } from '../lib/logic.js';
 import { today, fmtWeekday } from '../lib/dates.js';
 import { chip, checkbox } from '../lib/styleHelpers.js';
@@ -64,6 +64,19 @@ export default function Dashboard() {
   });
 
   const agenda = openTasks.slice(0, 5).map((t, i) => ({ t, vm: taskViewModel(s, t, i, false) }));
+
+  const moduleMinutes = minutesByModule(s);
+  const maxModuleMins = Math.max(1, ...moduleMinutes.map(m => m.mins));
+  const timeByModule = moduleMinutes
+    .filter(m => m.name !== 'Unlinked' || m.mins > 0)
+    .map(m => ({
+      name: m.name,
+      label: m.mins >= 60 ? Math.floor(m.mins / 60) + 'h ' + (m.mins % 60) + 'm' : m.mins + ' min',
+      fillStyle: {
+        width: Math.max(m.mins ? 2 : 0, Math.round((m.mins / maxModuleMins) * 100)) + '%', height: '100%',
+        background: m.name === 'Unlinked' ? 'var(--color-divider)' : 'var(--color-accent)'
+      }
+    }));
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
@@ -143,6 +156,27 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div>
+        <h4>Time by module</h4>
+        <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
+        {timeByModule.every(m => m.name === 'Unlinked') && (
+          <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>
+            No sessions linked to a topic yet — pick one under "Currently studying" on the Study sessions page.
+          </p>
+        )}
+        {timeByModule.map(m => (
+          <div key={m.name} style={{ padding: 'var(--space-2) 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', fontSize: '14px' }}>
+              <span>{m.name}</span>
+              <span style={{ fontFeatureSettings: "'tnum'", opacity: .7 }}>{m.label}</span>
+            </div>
+            <div style={{ height: '3px', background: 'var(--color-divider)', marginTop: '6px' }}>
+              <div style={m.fillStyle}></div>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );

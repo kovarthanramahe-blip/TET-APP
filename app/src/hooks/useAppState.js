@@ -50,14 +50,15 @@ export function useAppState() {
       return resetProgressState(s);
     }),
 
-    logSession: (label, mins) => setState(s => logSessionState(s, label, mins)),
+    logSession: (label, mins) => setState(s => logSessionState(s, label, mins, s.sessionTopicId)),
     addManualLog: () => setState(s => {
       if (!Number(s.logMinutes)) return s;
-      const next = logSessionState(s, s.logLabel || 'Manual session', Number(s.logMinutes));
+      const next = logSessionState(s, s.logLabel || 'Manual session', Number(s.logMinutes), s.sessionTopicId);
       return { ...next, logLabel: '' };
     }),
     setLogLabel: (v) => update({ logLabel: v }),
     setLogMinutes: (v) => update({ logMinutes: v }),
+    setSessionTopic: (topicId) => update({ sessionTopicId: topicId || null }),
 
     setTimerMode: (m) => setState(s => ({
       ...s, timerMode: m, phase: 'focus', running: false,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../AppContext.jsx';
-import { phaseLength, totalMinutes } from '../lib/logic.js';
+import { modulesFor, phaseLength, topicKey, totalMinutes } from '../lib/logic.js';
 import { today, fmtShort } from '../lib/dates.js';
 import { chip } from '../lib/styleHelpers.js';
 
@@ -21,13 +21,33 @@ export default function StudySessions() {
   const sessionRows = s.sessions.slice(0, 8).map(x => ({
     label: x.label,
     when: x.date === today() ? 'Today' : fmtShort(x.date),
-    mins: x.mins
+    mins: x.mins,
+    topic: x.topicId ? x.topicId.split('|')[2] : '—'
   }));
   const sessionSummary = s.sessions.length + ' sessions · ' + (mins / 60).toFixed(1) + ' hours total · average ' +
     Math.round(mins / Math.max(1, s.sessions.length)) + ' min';
 
   return (
-    <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 'var(--space-8)', alignItems: 'start' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      <div className="card" style={{ padding: 'var(--space-4) var(--space-6)', display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="field" style={{ flex: '1 1 260px', margin: 0 }}>
+          <label>Currently studying</label>
+          <select className="input" value={s.sessionTopicId || ''} onChange={e => actions.setSessionTopic(e.target.value)}>
+            <option value="">— Not linked —</option>
+            {modulesFor(s).map(m => (
+              <optgroup key={m.name} label={m.name}>
+                {m.topics.map(t => (
+                  <option key={t[0]} value={topicKey(s.level, m.name, t[0])}>{t[0]}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+        <p style={{ fontSize: '12px', opacity: .65, margin: 0, flex: '2 1 260px' }}>
+          Applies to the timer below and to sessions you log by hand, so time studied can be broken down by topic on the dashboard.
+        </p>
+      </div>
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 'var(--space-8)', alignItems: 'start' }}>
       <div className="card" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
         <div style={{ fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--accent-ink)' }}>{phaseLabel}</div>
         <div style={{ fontFamily: 'var(--font-heading)', fontSize: '96px', lineHeight: 1, fontWeight: 400, fontFeatureSettings: "'tnum'", margin: 'var(--space-4) 0' }}>
@@ -88,11 +108,12 @@ export default function StudySessions() {
           <h4>Session log</h4>
           <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
           <table className="table" style={{ width: '100%' }}>
-            <thead><tr><th style={{ textAlign: 'left' }}>Session</th><th style={{ textAlign: 'left' }}>When</th><th style={{ textAlign: 'right' }}>Min</th></tr></thead>
+            <thead><tr><th style={{ textAlign: 'left' }}>Session</th><th style={{ textAlign: 'left' }}>Topic</th><th style={{ textAlign: 'left' }}>When</th><th style={{ textAlign: 'right' }}>Min</th></tr></thead>
             <tbody>
               {sessionRows.map((r, i) => (
                 <tr key={i}>
                   <td>{r.label}</td>
+                  <td style={{ opacity: .7 }}>{r.topic}</td>
                   <td style={{ opacity: .7 }}>{r.when}</td>
                   <td style={{ textAlign: 'right', fontFeatureSettings: "'tnum'" }}>{r.mins}</td>
                 </tr>
@@ -102,6 +123,7 @@ export default function StudySessions() {
           <p style={{ fontSize: '12px', opacity: .6, marginTop: 'var(--space-3)' }}>{sessionSummary}</p>
         </div>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }

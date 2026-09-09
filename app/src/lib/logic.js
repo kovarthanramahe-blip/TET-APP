@@ -14,12 +14,12 @@ export function seedState() {
     view: 'dash', theme: 'light', level: 'Level 1 (PRT)',
     confidence: {},
     sessions: [
-      { label: 'Piaget & Vygotsky revision', mins: 50, date: seedDay(-1) },
-      { label: 'Haryana GK — districts', mins: 25, date: seedDay(-1) },
-      { label: 'English grammar drill', mins: 75, date: seedDay(-2) },
-      { label: 'Quantitative aptitude set', mins: 40, date: seedDay(-3) },
-      { label: 'Hindi vyakaran', mins: 30, date: seedDay(-4) },
-      { label: 'Mock exam — Part I', mins: 60, date: seedDay(0) }
+      { label: 'Piaget & Vygotsky revision', mins: 50, date: seedDay(-1), topicId: 'Level 1 (PRT)|Child Development & Pedagogy|Theories of learning' },
+      { label: 'Haryana GK — districts', mins: 25, date: seedDay(-1), topicId: null },
+      { label: 'English grammar drill', mins: 75, date: seedDay(-2), topicId: null },
+      { label: 'Quantitative aptitude set', mins: 40, date: seedDay(-3), topicId: null },
+      { label: 'Hindi vyakaran', mins: 30, date: seedDay(-4), topicId: null },
+      { label: 'Mock exam — Part I', mins: 60, date: seedDay(0), topicId: null }
     ],
     tasks: [
       { id: 't1', title: 'Finish Child Development ch. 3 — learning theories', priority: 'High', due: seedDay(1), done: false },
@@ -35,7 +35,7 @@ export function seedState() {
     attempts: [],
     reviews: 0,
     taskFilter: 'Open', taskDraft: '', taskDue: '', taskPriority: 'Medium',
-    logLabel: '', logMinutes: 25,
+    logLabel: '', logMinutes: 25, sessionTopicId: null,
     activeNote: 'n1',
     timerMode: 'Pomodoro 25/5', phase: 'focus', running: false, remaining: 1500, cycles: 0,
     quizStage: 'setup', quizTypes: ['mcq', 'tf'], quizParts: [], quizMode: 'Practice',
@@ -72,14 +72,14 @@ export function phaseLength(s, phase) {
   return (phase === 'focus' ? focusMins(s) : breakMins(s)) * 60;
 }
 
-export function logSessionState(s, label, mins) {
-  return { ...s, sessions: [{ label, mins: Number(mins) || 0, date: today() }, ...s.sessions] };
+export function logSessionState(s, label, mins, topicId) {
+  return { ...s, sessions: [{ label, mins: Number(mins) || 0, date: today(), topicId: topicId || null }, ...s.sessions] };
 }
 
 export function finishPhaseState(s) {
   if (s.phase === 'focus') {
     const mins = Math.round(phaseLength(s, 'focus') / 60);
-    const withLog = logSessionState(s, 'Pomodoro — ' + s.timerMode, mins);
+    const withLog = logSessionState(s, 'Pomodoro — ' + s.timerMode, mins, s.sessionTopicId);
     return { ...withLog, phase: 'break', remaining: phaseLength(s, 'break'), cycles: s.cycles + 1, running: true };
   }
   return { ...s, phase: 'focus', remaining: phaseLength(s, 'focus'), running: false };
@@ -106,6 +106,26 @@ export function streakCount(s) {
 export function modulesFor(s) { return SYLLABUS[s.level] || []; }
 export function topicKey(level, m, t) { return level + '|' + m + '|' + t; }
 export function confOf(s, m, t) { return s.confidence[topicKey(s.level, m, t)] || 0; }
+
+// Phase 6, step 2: sessions carry a topicId built by topicKey(s.level, ...)
+// (same key shape notes use), so a session only counts toward a module here
+// if its key's level prefix matches the CURRENT level -- a session logged
+// under a different level's module of the same name is not conflated with
+// it, and falls into the Unlinked bucket below instead, same as a session
+// with no topic at all. That keeps this always reconciling exactly against
+// totalMinutes(s) for whichever level is active.
+export function minutesByModule(s) {
+  const prefix = s.level + '|';
+  const totals = new Map(modulesFor(s).map(m => [m.name, 0]));
+  let unlinked = 0;
+  s.sessions.forEach(session => {
+    const key = session.topicId;
+    const moduleName = key && key.startsWith(prefix) ? key.slice(prefix.length).split('|')[0] : null;
+    if (moduleName && totals.has(moduleName)) totals.set(moduleName, totals.get(moduleName) + session.mins);
+    else unlinked += session.mins;
+  });
+  return modulesFor(s).map(m => ({ name: m.name, mins: totals.get(m.name) })).concat([{ name: 'Unlinked', mins: unlinked }]);
+}
 
 export function confColor(c) {
   if (c === 1) return '#b3392f';

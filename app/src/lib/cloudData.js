@@ -28,11 +28,14 @@ function noteFromRow(row, topicIdToKey) {
     topicId: (row.topic_id && topicIdToKey.get(row.topic_id)) || null
   };
 }
-function sessionFromRow(row) {
+function sessionFromRow(row, topicIdToKey) {
   // Sessions have no id/edit/delete UI in the app (StudySessions.jsx keys
   // its rows by array index) -- match the local shape exactly and drop the
   // rest of the row rather than inventing a field nothing consumes.
-  return { label: row.label, mins: row.minutes, date: row.local_date };
+  // Phase 6, step 2: topic_id resolution degrades to null on a stale/
+  // unresolvable id, same rationale as noteFromRow() above -- a session's
+  // own label/minutes/date are never at risk, only the optional link.
+  return { label: row.label, mins: row.minutes, date: row.local_date, topicId: (row.topic_id && topicIdToKey.get(row.topic_id)) || null };
 }
 
 export async function fetchTasks(userId) {
@@ -138,27 +141,37 @@ export async function cloudDeleteNote(userId, id) {
   assertNoError('deleting note', error);
 }
 
-export async function fetchStudySessions(userId) {
+// topicIdToKey is the caller's responsibility to fetch (via
+// fetchTopicKeyMaps()) and pass in -- same shared-reference-data approach
+// useCloudTasksAndNotes.js uses for notes.
+export async function fetchStudySessions(userId, topicIdToKey) {
   const { data, error } = await supabase
     .from('study_sessions')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
   assertNoError('fetching study sessions', error);
-  return (data || []).map(sessionFromRow);
+  return (data || []).map(row => sessionFromRow(row, topicIdToKey));
 }
 
 // Sessions are append-only in this app (no per-row edit/delete UI, no local
 // id) -- there is no cloudUpdateStudySession/cloudDeleteStudySession to
 // match. The only bulk operation is cloudDeleteAllStudySessions below, for
 // "Reset my progress".
-export async function cloudAddStudySession(userId, { label, mins, date }) {
+//
+// keyToTopicId resolution follows the same write-path rule as
+// cloudAddNote(): an unresolvable key throws, since StudySessions.jsx's
+// topic picker only ever offers keys built from the same live syllabus data
+// the map was built from.
+export async function cloudAddStudySession(userId, keyToTopicId, { label, mins, date, topicId }) {
+  const resolvedTopicId = topicId ? keyToTopicId.get(topicId) : null;
+  if (topicId && !resolvedTopicId) throw new Error(`[cloudData] unknown topic for session link "${topicId}"`);
   const { error } = await supabase.from('study_sessions').insert({
     user_id: userId,
     label,
     minutes: mins,
     local_date: date,
-    topic_id: null,
+    topic_id: resolvedTopicId,
     // Same best-effort inference migrateToSupabase.js uses: the Pomodoro
     // timer is the only thing that produces this exact label prefix
     // (finishPhaseState() in logic.js); everything else -- including
@@ -179,12 +192,13 @@ export async function cloudDeleteAllStudySessions(userId) {
 
 // Local topic keys look like
 // "Level 1 (PRT)|Child Development & Pedagogy|Theories of learning" --
-// built by topicKey() in logic.js as level|moduleName|topicName. Both
-// topic_confidence and notes store a topic_id (uuid) instead, so every
-// read/write for either needs this key <-> id mapping -- exported so
-// useCloudTasksAndNotes.js (Phase 6, step 1) can share it with
-// useCloudTopicConfidence.js rather than duplicating the lookup a third
-// time. migrateToSupabase.js resolves the identical mapping the same way
+// built by topicKey() in logic.js as level|moduleName|topicName.
+// topic_confidence, notes, and study_sessions all store a topic_id (uuid)
+// instead, so every read/write for any of them needs this key <-> id
+// mapping -- exported so useCloudTasksAndNotes.js (Phase 6, step 1) and
+// useCloudStudySessions.js (Phase 6, step 2) can share it with
+// useCloudTopicConfidence.js rather than duplicating the lookup.
+// migrateToSupabase.js resolves the identical mapping the same way
 // (a `topics` select joining modules/courses) for the one-time migration;
 // that file is reviewed, tested and left alone per Phase 3D, so it keeps
 // its own independent copy rather than importing this one.

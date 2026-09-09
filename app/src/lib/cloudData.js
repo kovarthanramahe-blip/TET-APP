@@ -561,6 +561,32 @@ export async function cloudDeleteAllQuizAttempts(userId) {
   assertNoError('resetting quiz attempts', error);
 }
 
+// Phase 7: read-only analytics helper. s.attempts only ever stores
+// attempt-LEVEL summaries (when/mode/correct/total/pct) -- per-question
+// detail is never mirrored into local state (see cloudAddQuizAttempt's own
+// comment above) -- but quiz_attempt_answers + quiz_questions already
+// exist in Supabase and already carry it (is_correct per answer, joined to
+// the question's `part`). This reads both EXISTING tables to build a
+// per-part accuracy breakdown for "strongest/weakest syllabus areas" --
+// no new table, no new write path, nothing else in the app calls this.
+export async function fetchQuizPerformanceByPart(userId) {
+  const { data, error } = await supabase
+    .from('quiz_attempt_answers')
+    .select('is_correct, quiz_questions ( part )')
+    .eq('user_id', userId);
+  assertNoError('fetching quiz performance by part', error);
+
+  const byPart = {};
+  for (const row of data ?? []) {
+    const part = row.quiz_questions?.part;
+    if (!part) continue;
+    if (!byPart[part]) byPart[part] = { correct: 0, total: 0 };
+    byPart[part].total++;
+    if (row.is_correct) byPart[part].correct++;
+  }
+  return byPart;
+}
+
 // Phase 3E, step 6: profiles is a single row per user (id = auth.users.id,
 // auto-created by the handle_new_user() trigger on signup), so unlike every
 // other resource so far there is no id-resolution/mapping and no insert

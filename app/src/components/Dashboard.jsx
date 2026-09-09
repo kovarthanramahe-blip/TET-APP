@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../AppContext.jsx';
 import {
   totalMinutes, minutesOn, streakCount, bestScore, modulesFor, confOf,
-  confColor, confName, taskViewModel, minutesByModule
+  confColor, confName, taskViewModel, minutesByModule,
+  dailyMinutesSeries, daysStudiedInRange, weeklyConsistency, minutesByTopic,
+  quizAverageScore, quizPassRate, quizTrend, modulePerformance,
+  seededDeckProgress, customDeckProgress
 } from '../lib/logic.js';
-import { today, fmtWeekday } from '../lib/dates.js';
+import { today, fmtWeekday, fmtShort } from '../lib/dates.js';
 import { chip, checkbox } from '../lib/styleHelpers.js';
+import { useQuizPartPerformance } from '../hooks/useQuizPartPerformance.js';
 
 export default function Dashboard() {
-  const { state, actions } = useApp();
+  const { state, actions, migration } = useApp();
   const s = state;
   const mins = totalMinutes(s);
   const streak = streakCount(s);
@@ -22,22 +26,44 @@ export default function Dashboard() {
     { label: 'Best test score', value: bestScore(s) + '%', sub: s.attempts.length + ' attempts · 60% qualifies' }
   ];
 
-  const chart = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000);
-    const iso = d.toISOString().slice(0, 10);
-    const m = minutesOn(s, iso);
-    const h = Math.max(2, Math.round((m / 120) * 100));
-    chart.push({
-      day: fmtWeekday(d), mins: m || '—',
-      barStyle: {
-        width: '100%', height: Math.min(100, h) + '%',
-        background: m ? 'color-mix(in srgb, var(--color-accent) 28%, transparent)' : 'transparent',
-        borderTop: '2px solid ' + (m ? 'var(--color-accent)' : 'var(--color-divider)'),
-        borderRadius: '2px 2px 0 0'
-      }
-    });
-  }
+  // Phase 7: KPI row -- same stat-tile shape as `stats` above, one level
+  // down in prominence (second row), summarizing the new analytics blocks
+  // below rather than duplicating their detail.
+  const quizAvg = quizAverageScore(s);
+  const passRate = quizPassRate(s);
+  const daysStudied7 = daysStudiedInRange(s, 7);
+  const seededProgress = seededDeckProgress(s);
+  const customProgress = customDeckProgress(s);
+  const kpis = [
+    { label: 'Avg quiz score', value: s.attempts.length ? quizAvg + '%' : '—', sub: s.attempts.length + ' attempts' },
+    { label: 'Pass rate', value: s.attempts.length ? passRate + '%' : '—', sub: '60% qualifies' },
+    { label: 'Study consistency', value: daysStudied7 + '/7', sub: 'days studied this week' },
+    { label: 'Cards reviewed', value: seededProgress.reviewed + customProgress.reviewed, sub: (seededProgress.total + customProgress.total) + ' total cards' }
+  ];
+
+  // Study hours trend -- generalizes the old fixed 7-day chart with a
+  // 7/30/90 selector. Bar scaling is relative to the selected range's own
+  // max (not a fixed 120min cap) so 30/90-day views stay legible. Per-bar
+  // weekday/minute labels only render at 7 days -- 30 or 90 tiny labels
+  // would be unreadable clutter, so those ranges rely on the hover title
+  // and the summary line below instead.
+  const [trendDays, setTrendDays] = useState(7);
+  const trendSeries = dailyMinutesSeries(s, trendDays);
+  const trendMax = Math.max(1, ...trendSeries.map(d => d.mins));
+  const trendTotalMins = trendSeries.reduce((a, d) => a + d.mins, 0);
+  const trendDaysStudied = trendSeries.filter(d => d.mins > 0).length;
+  const chart = trendSeries.map(d => ({
+    iso: d.iso, mins: d.mins,
+    title: fmtShort(d.iso) + ' · ' + d.mins + ' min',
+    dayLabel: trendDays === 7 ? fmtWeekday(d.date) : '',
+    minsLabel: trendDays === 7 ? (d.mins || '—') : '',
+    barStyle: {
+      width: '100%', height: Math.max(2, Math.round((d.mins / trendMax) * 100)) + '%',
+      background: d.mins ? 'color-mix(in srgb, var(--color-accent) 28%, transparent)' : 'transparent',
+      borderTop: '2px solid ' + (d.mins ? 'var(--color-accent)' : 'var(--color-divider)'),
+      borderRadius: '2px 2px 0 0'
+    }
+  }));
 
   const heatCells = [];
   modules.forEach(m => m.topics.forEach(t => {
@@ -78,6 +104,27 @@ export default function Dashboard() {
       }
     }));
 
+  // Phase 7 additions below -----------------------------------------------
+
+  const weeks = weeklyConsistency(s, 8);
+
+  const topTopics = minutesByTopic(s).slice(0, 6).map(t => ({
+    ...t,
+    label: t.mins >= 60 ? Math.floor(t.mins / 60) + 'h ' + (t.mins % 60) + 'm' : t.mins + ' min'
+  }));
+
+  const quizSeries = quizTrend(s, 10);
+
+  // Cloud-only, read-only, self-contained (see useQuizPartPerformance.js) --
+  // {} for a logged-out/local user, so modulePerformance() below falls back
+  // to confidence alone, exactly as it would for a cloud user with no quiz
+  // history yet.
+  const cloudActive = (migration.status === 'success' || migration.status === 'already_migrated') && !!migration.userId;
+  const quizByPart = useQuizPartPerformance({ active: cloudActive, userId: migration.userId });
+  const performance = modulePerformance(s, quizByPart);
+  const weakestAreas = performance.slice(0, 2);
+  const strongestAreas = performance.slice(-2).reverse();
+
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 'var(--space-4)' }}>
@@ -90,19 +137,39 @@ export default function Dashboard() {
         ))}
       </div>
 
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 'var(--space-4)' }}>
+        {kpis.map(st => (
+          <div key={st.label} className="card" style={{ padding: 'var(--space-4)' }}>
+            <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .6 }}>{st.label}</div>
+            <div style={{ fontFamily: 'var(--font-heading)', fontSize: '30px', lineHeight: 1.1, fontWeight: 400, fontFeatureSettings: "'tnum'", marginTop: '4px' }}>{st.value}</div>
+            <div style={{ fontSize: '12px', opacity: .65 }}>{st.sub}</div>
+          </div>
+        ))}
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 'var(--space-8)' }}>
         <div>
-          <h4>Last seven days</h4>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+            <h4 style={{ margin: 0 }}>Study hours trend</h4>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {[7, 30, 90].map(d => (
+                <button key={d} type="button" style={chip(trendDays === d, true)} onClick={() => setTrendDays(d)}>{d}d</button>
+              ))}
+            </div>
+          </div>
           <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-4)' }} />
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--space-3)', height: '150px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: trendDays === 7 ? 'var(--space-3)' : '2px', height: '150px' }}>
             {chart.map((c, i) => (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: '6px', height: '100%' }}>
-                <div style={{ fontSize: '11px', fontFeatureSettings: "'tnum'", opacity: .7 }}>{c.mins}</div>
+              <div key={i} title={c.title} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: '6px', height: '100%' }}>
+                {trendDays === 7 && <div style={{ fontSize: '11px', fontFeatureSettings: "'tnum'", opacity: .7 }}>{c.minsLabel}</div>}
                 <div style={c.barStyle}></div>
-                <div style={{ fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase', opacity: .6 }}>{c.day}</div>
+                {trendDays === 7 && <div style={{ fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase', opacity: .6 }}>{c.dayLabel}</div>}
               </div>
             ))}
           </div>
+          <p style={{ fontSize: '12px', opacity: .65, margin: 'var(--space-3) 0 0' }}>
+            {(trendTotalMins / 60).toFixed(1)} hours · studied {trendDaysStudied} of the last {trendDays} days
+          </p>
         </div>
         <div>
           <h4>Mastery heatmap</h4>
@@ -177,6 +244,120 @@ export default function Dashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 'var(--space-8)' }}>
+        <div>
+          <h4>Time by topic</h4>
+          <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
+          {topTopics.length === 0 && (
+            <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>No topic-linked sessions yet.</p>
+          )}
+          {topTopics.map(t => (
+            <div key={t.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', padding: 'var(--space-2) 0', fontSize: '13px', borderBottom: '1px solid var(--color-divider)' }}>
+              <span>{t.topic}<span style={{ opacity: .55 }}> · {t.module}</span></span>
+              <span style={{ fontFeatureSettings: "'tnum'", opacity: .7, flex: 'none' }}>{t.label}</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <h4>Weekly consistency</h4>
+          <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-4)' }} />
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '110px' }}>
+            {weeks.map((w, i) => (
+              <div key={i} title={w.label + ': ' + w.daysStudied + '/7 days studied'} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: '6px', height: '100%' }}>
+                <div style={{ fontSize: '11px', fontFeatureSettings: "'tnum'", opacity: .7 }}>{w.daysStudied}</div>
+                <div style={{
+                  width: '100%', height: Math.max(2, Math.round((w.daysStudied / 7) * 100)) + '%',
+                  background: w.daysStudied ? 'color-mix(in srgb, var(--color-accent) 28%, transparent)' : 'transparent',
+                  borderTop: '2px solid ' + (w.daysStudied ? 'var(--color-accent)' : 'var(--color-divider)'),
+                  borderRadius: '2px 2px 0 0'
+                }}></div>
+                <div style={{ fontSize: '10px', letterSpacing: '.04em', textTransform: 'uppercase', opacity: .6 }}>{w.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 'var(--space-8)' }}>
+        <div>
+          <h4>Quiz performance trend</h4>
+          <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
+          {quizSeries.length === 0 && <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>No test attempts yet.</p>}
+          {quizSeries.length > 0 && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--space-2)', height: '110px' }}>
+                {quizSeries.map((a, i) => (
+                  <div key={i} title={a.when + ' · ' + a.mode + ' · ' + a.pct + '%'} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
+                    <div style={{
+                      width: '100%', height: Math.max(2, a.pct) + '%',
+                      background: a.pct >= 60 ? 'color-mix(in srgb, var(--color-accent) 28%, transparent)' : 'color-mix(in srgb, #b3392f 22%, transparent)',
+                      borderTop: '2px solid ' + (a.pct >= 60 ? 'var(--color-accent)' : '#b3392f'),
+                      borderRadius: '2px 2px 0 0'
+                    }}></div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: '12px', opacity: .65, margin: 'var(--space-3) 0 0' }}>
+                Last {quizSeries.length} attempt{quizSeries.length > 1 ? 's' : ''}, oldest to newest · red bars are below the 60% qualifying mark
+              </p>
+            </>
+          )}
+        </div>
+        <div>
+          <h4>Strongest / weakest areas</h4>
+          <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
+          <p style={{ fontSize: '12px', opacity: .6, margin: '0 0 var(--space-3)' }}>
+            Ranked by syllabus mastery; quiz accuracy shown where you have test attempts for that part of the paper.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 'var(--space-4)' }}>
+            <div>
+              <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .6, marginBottom: '6px' }}>Needs the most work</div>
+              {weakestAreas.map(m => (
+                <div key={m.name} style={{ padding: 'var(--space-1) 0' }}>
+                  <div style={{ fontSize: '13px' }}>{m.name}</div>
+                  <div style={{ fontSize: '12px', opacity: .65, fontFeatureSettings: "'tnum'" }}>
+                    {m.confidencePct}% mastered{m.quizPct !== null ? ' · ' + m.quizPct + '% quiz avg' : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .6, marginBottom: '6px' }}>Strongest</div>
+              {strongestAreas.map(m => (
+                <div key={m.name} style={{ padding: 'var(--space-1) 0' }}>
+                  <div style={{ fontSize: '13px' }}>{m.name}</div>
+                  <div style={{ fontSize: '12px', opacity: .65, fontFeatureSettings: "'tnum'" }}>
+                    {m.confidencePct}% mastered{m.quizPct !== null ? ' · ' + m.quizPct + '% quiz avg' : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h4>Flashcard progress</h4>
+        <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 'var(--space-4)' }}>
+          <div>
+            <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .6 }}>Seeded deck</div>
+            <div style={{ fontSize: '13px', marginTop: '4px' }}>{seededProgress.reviewed}/{seededProgress.total} reviewed at least once</div>
+            <div style={{ fontSize: '12px', opacity: .65 }}>{seededProgress.dueNow} due now · avg ease {seededProgress.avgEase.toFixed(2)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .6 }}>Your flashcards</div>
+            {customProgress.total === 0 && <div style={{ fontSize: '13px', marginTop: '4px', opacity: .6 }}>None yet</div>}
+            {customProgress.total > 0 && (
+              <>
+                <div style={{ fontSize: '13px', marginTop: '4px' }}>{customProgress.reviewed}/{customProgress.total} reviewed at least once</div>
+                <div style={{ fontSize: '12px', opacity: .65 }}>{customProgress.dueNow} due now · avg ease {customProgress.avgEase.toFixed(2)}</div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </section>
   );

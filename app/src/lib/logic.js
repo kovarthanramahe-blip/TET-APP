@@ -130,6 +130,121 @@ export function minutesByModule(s) {
   return modulesFor(s).map(m => ({ name: m.name, mins: totals.get(m.name) })).concat([{ name: 'Unlinked', mins: unlinked }]);
 }
 
+// Phase 7: generalizes the day-by-day loop Dashboard.jsx already built
+// inline for its old fixed 7-day chart, so the same series backs both the
+// 7/30/90-day trend chart and daysStudiedInRange() below without either
+// walking the calendar twice.
+export function dailyMinutesSeries(s, days) {
+  const series = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const iso = d.toISOString().slice(0, 10);
+    series.push({ date: d, iso, mins: minutesOn(s, iso) });
+  }
+  return series;
+}
+
+export function daysStudiedInRange(s, days) {
+  return dailyMinutesSeries(s, days).filter(d => d.mins > 0).length;
+}
+
+// Non-overlapping rolling 7-day buckets ending today, most recent last --
+// a coarser view of the same underlying sessions than streakCount() (which
+// only tracks the single unbroken current streak) or dailyMinutesSeries()
+// (which is daily, not weekly).
+export function weeklyConsistency(s, weeks) {
+  const out = [];
+  for (let w = weeks - 1; w >= 0; w--) {
+    let count = 0;
+    for (let i = 0; i < 7; i++) {
+      const iso = new Date(Date.now() - (w * 7 + i) * 86400000).toISOString().slice(0, 10);
+      if (minutesOn(s, iso) > 0) count++;
+    }
+    out.push({ label: w === 0 ? 'This wk' : w + 'w ago', daysStudied: count });
+  }
+  return out;
+}
+
+// Flat, topic-level companion to minutesByModule() -- same level-prefix
+// matching rule (a session logged under a different level's topic of the
+// same name never gets conflated with the current level's), just not
+// rolled up to the module.
+export function minutesByTopic(s) {
+  const prefix = s.level + '|';
+  const totals = new Map();
+  s.sessions.forEach(session => {
+    const key = session.topicId;
+    if (key && key.startsWith(prefix)) totals.set(key, (totals.get(key) || 0) + session.mins);
+  });
+  return [...totals.entries()]
+    .map(([key, mins]) => {
+      const parts = key.split('|');
+      return { key, module: parts[1], topic: parts[2], mins };
+    })
+    .sort((a, b) => b.mins - a.mins);
+}
+
+export function quizAverageScore(s) {
+  return s.attempts.length ? Math.round(s.attempts.reduce((a, b) => a + b.pct, 0) / s.attempts.length) : 0;
+}
+
+export function quizPassRate(s) {
+  return s.attempts.length ? Math.round((s.attempts.filter(a => a.pct >= 60).length / s.attempts.length) * 100) : 0;
+}
+
+// s.attempts is newest-first (submitQuizState() prepends); reverse the
+// most recent `limit` so the trend chart reads oldest-to-newest, left to
+// right, like the daily/weekly charts above.
+export function quizTrend(s, limit) {
+  return s.attempts.slice(0, limit).slice().reverse();
+}
+
+// The quiz builder's "parts of the paper" (Quiz.jsx's PART_OPTIONS /
+// quiz_questions.part) match syllabus module names exactly for four of the
+// five parts. The fifth, "Subject", is deliberately level-generic while its
+// matching module name varies by level ("Subject — Maths & EVS" for PRT,
+// "Subject — Social Studies" for TGT, "Subject specialisation (PGT)" for
+// PGT) -- all three start with "Subject", which is what this normalizes on.
+export function partForModule(moduleName) {
+  return moduleName.startsWith('Subject') ? 'Subject' : moduleName;
+}
+
+// Combines confidence (available for every user, cloud or local) with quiz
+// accuracy by part (available only where quizByPart has data -- see
+// useQuizPartPerformance.js) into one ranked list, sorted weakest to
+// strongest BY CONFIDENCE. quizPct stays null rather than 0 when there is
+// no quiz history for that part, so a module the user simply hasn't tested
+// yet is never shown as "0% quiz average" -- that would be inventing a
+// score, not reporting one.
+export function modulePerformance(s, quizByPart) {
+  return modulesFor(s).map(m => {
+    const done = m.topics.filter(t => confOf(s, m.name, t[0]) === 3).length;
+    const confidencePct = Math.round((done / m.topics.length) * 100);
+    const qp = quizByPart && quizByPart[partForModule(m.name)];
+    const quizPct = qp && qp.total > 0 ? Math.round((qp.correct / qp.total) * 100) : null;
+    return { name: m.name, confidencePct, quizPct, quizAttempts: qp ? qp.total : 0 };
+  }).sort((a, b) => a.confidencePct - b.confidencePct);
+}
+
+export function seededDeckProgress(s) {
+  const total = CARDS.length;
+  const reviewed = Object.values(s.cards).filter(c => (c?.reps || 0) > 0).length;
+  const eases = Object.values(s.cards).map(c => c.ease);
+  return {
+    total, reviewed, dueNow: dueCards(s).length,
+    avgEase: eases.length ? eases.reduce((a, b) => a + b, 0) / eases.length : 2.5
+  };
+}
+
+export function customDeckProgress(s) {
+  const total = s.customCards.length;
+  const reviewed = s.customCards.filter(c => c.reps > 0).length;
+  return {
+    total, reviewed, dueNow: dueCustomCards(s).length,
+    avgEase: total ? s.customCards.reduce((a, c) => a + c.ease, 0) / total : 2.5
+  };
+}
+
 export function confColor(c) {
   if (c === 1) return '#b3392f';
   if (c === 2) return '#c28d41';

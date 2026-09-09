@@ -111,6 +111,31 @@ export function modulesFor(s) { return SYLLABUS[s.level] || []; }
 export function topicKey(level, m, t) { return level + '|' + m + '|' + t; }
 export function confOf(s, m, t) { return s.confidence[topicKey(s.level, m, t)] || 0; }
 
+// Phase 10: global search across the app's own content -- notes, tasks,
+// custom flashcards, and syllabus topics for the CURRENT level (via
+// modulesFor(s), the same level-scoping every other cross-cutting lookup
+// in this file already uses). A plain case-insensitive substring match,
+// same simplicity level as everything else here -- no fuzzy matching, no
+// ranking beyond "which field matched," capped per category so the
+// dropdown stays scannable rather than becoming a second scroll surface.
+export function globalSearch(s, query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return { notes: [], tasks: [], customCards: [], topics: [] };
+
+  const notes = s.notes.filter(n => (n.title + ' ' + n.body).toLowerCase().includes(q)).slice(0, 6);
+  const tasks = s.tasks.filter(t => t.title.toLowerCase().includes(q)).slice(0, 6);
+  const customCards = s.customCards.filter(c => (c.front + ' ' + c.back + ' ' + c.category).toLowerCase().includes(q)).slice(0, 6);
+
+  const topics = [];
+  modulesFor(s).forEach(m => {
+    m.topics.forEach(t => {
+      if ((t[0] + ' ' + t[1]).toLowerCase().includes(q)) topics.push({ module: m.name, name: t[0], desc: t[1] });
+    });
+  });
+
+  return { notes, tasks, customCards, topics: topics.slice(0, 6) };
+}
+
 // Phase 6, step 2: sessions carry a topicId built by topicKey(s.level, ...)
 // (same key shape notes use), so a session only counts toward a module here
 // if its key's level prefix matches the CURRENT level -- a session logged

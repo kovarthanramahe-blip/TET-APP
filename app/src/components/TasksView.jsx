@@ -24,7 +24,7 @@ export default function TasksView() {
           <label>Priority</label>
           <div style={{ display: 'flex', gap: '4px' }}>
             {['High', 'Medium', 'Low'].map(p => (
-              <button key={p} type="button" onClick={() => actions.setTaskPriority(p)} style={chip(s.taskPriority === p, true)}>{p}</button>
+              <button key={p} type="button" onClick={() => actions.setTaskPriority(p)} aria-pressed={s.taskPriority === p} style={chip(s.taskPriority === p, true)}>{p}</button>
             ))}
           </div>
         </div>
@@ -33,7 +33,7 @@ export default function TasksView() {
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
         {['Open', 'Done', 'All'].map(f => (
-          <button key={f} type="button" onClick={() => actions.setTaskFilter(f)} style={chip(s.taskFilter === f, false)}>{f}</button>
+          <button key={f} type="button" onClick={() => actions.setTaskFilter(f)} aria-pressed={s.taskFilter === f} style={chip(s.taskFilter === f, false)}>{f}</button>
         ))}
       </div>
 
@@ -41,7 +41,7 @@ export default function TasksView() {
         {taskList.length === 0 && <p style={{ opacity: .6, margin: 0 }}>Nothing here.</p>}
         {taskList.map(({ t, vm }) => (
           <div key={t.id} className="card" style={{ padding: 'var(--space-4)', display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
-            <button type="button" onClick={() => actions.toggleTask(t.id)} style={checkbox(vm.done)}>{vm.mark}</button>
+            <button type="button" onClick={() => actions.toggleTask(t.id)} role="checkbox" aria-checked={vm.done} aria-label={vm.title} style={checkbox(vm.done)}>{vm.mark}</button>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '15px', textDecoration: vm.done ? 'line-through' : 'none', opacity: vm.done ? 0.55 : 1 }}>{vm.title}</div>
               <div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap', fontSize: '12px', opacity: .7, marginTop: '2px', fontFeatureSettings: "'tnum'" }}>

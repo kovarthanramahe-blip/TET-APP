@@ -205,7 +205,7 @@ export default function Dashboard() {
             <h4 style={{ margin: 0 }}>Study hours trend</h4>
             <div style={{ display: 'flex', gap: '6px' }}>
               {[7, 30, 90].map(d => (
-                <button key={d} type="button" style={chip(trendDays === d, true)} onClick={() => setTrendDays(d)}>{d}d</button>
+                <button key={d} type="button" aria-pressed={trendDays === d} style={chip(trendDays === d, true)} onClick={() => setTrendDays(d)}>{d}d</button>
               ))}
             </div>
           </div>
@@ -246,7 +246,7 @@ export default function Dashboard() {
           {agenda.length === 0 && <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>Nothing open — add a task to see it here.</p>}
           {agenda.map(({ t, vm }) => (
             <div key={t.id} style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-divider)' }}>
-              <button type="button" onClick={() => actions.toggleTask(t.id)} style={checkbox(vm.done)}>{vm.mark}</button>
+              <button type="button" onClick={() => actions.toggleTask(t.id)} role="checkbox" aria-checked={vm.done} aria-label={vm.title} style={checkbox(vm.done)}>{vm.mark}</button>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '15px', textDecoration: vm.done ? 'line-through' : 'none', opacity: vm.done ? 0.55 : 1 }}>{vm.title}</div>
                 <div style={{ fontSize: '12px', opacity: .65, fontFeatureSettings: "'tnum'" }}>{vm.meta}</div>

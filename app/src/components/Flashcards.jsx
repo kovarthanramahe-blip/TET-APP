@@ -215,9 +215,9 @@ export default function Flashcards() {
         {s.customCards.length === 0 && <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>Cards you add appear here.</p>}
         {s.customCards.map(c => (
           <div key={c.id} style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-divider)' }}>
-            <input className="input" style={{ flex: '1 1 140px' }} type="text" value={c.front} onChange={e => actions.updateCustomCard(c.id, { front: e.target.value })} />
-            <input className="input" style={{ flex: '1 1 140px' }} type="text" value={c.back} onChange={e => actions.updateCustomCard(c.id, { back: e.target.value })} />
-            <input className="input" style={{ flex: '1 1 100px' }} type="text" value={c.category} onChange={e => actions.updateCustomCard(c.id, { category: e.target.value })} placeholder="Category" />
+            <input className="input" style={{ flex: '1 1 140px' }} type="text" aria-label="Front" value={c.front} onChange={e => actions.updateCustomCard(c.id, { front: e.target.value })} />
+            <input className="input" style={{ flex: '1 1 140px' }} type="text" aria-label="Back" value={c.back} onChange={e => actions.updateCustomCard(c.id, { back: e.target.value })} />
+            <input className="input" style={{ flex: '1 1 100px' }} type="text" aria-label="Category" value={c.category} onChange={e => actions.updateCustomCard(c.id, { category: e.target.value })} placeholder="Category" />
             <button type="button" className="btn btn-secondary" onClick={() => actions.deleteCustomCard(c.id)}>Delete</button>
           </div>
         ))}

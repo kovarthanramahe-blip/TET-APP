@@ -65,7 +65,7 @@ export default function StudySessions() {
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center', marginTop: 'var(--space-6)' }}>
           {['Pomodoro 25/5', 'Deep work 50/10', 'Stopwatch'].map(m => (
-            <button key={m} type="button" onClick={() => actions.setTimerMode(m)} style={chip(s.timerMode === m, true)}>{m}</button>
+            <button key={m} type="button" onClick={() => actions.setTimerMode(m)} aria-pressed={s.timerMode === m} style={chip(s.timerMode === m, true)}>{m}</button>
           ))}
         </div>
         <p style={{ fontSize: '13px', opacity: .7, margin: 'var(--space-6) 0 0' }}>{pomodoroNote}</p>
@@ -82,7 +82,7 @@ export default function StudySessions() {
             <input className="input" type="number" min={2} max={20} value={s.breakMinutes}
               onChange={e => actions.setBreakMinutes(Math.min(20, Math.max(2, Number(e.target.value) || 2)))} />
           </div>
-          <button type="button" style={chip(s.showQuotes ?? true, false)} onClick={() => actions.setShowQuotes(!(s.showQuotes ?? true))}>
+          <button type="button" aria-pressed={s.showQuotes ?? true} style={chip(s.showQuotes ?? true, false)} onClick={() => actions.setShowQuotes(!(s.showQuotes ?? true))}>
             Quotes {(s.showQuotes ?? true) ? 'on' : 'off'}
           </button>
         </div>

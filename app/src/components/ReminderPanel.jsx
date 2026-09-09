@@ -28,6 +28,7 @@ export default function ReminderPanel() {
         type="button"
         className="btn btn-secondary"
         onClick={toggle}
+        aria-pressed={state.remindersEnabled}
         style={{ justifyContent: 'space-between', width: '100%' }}
       >
         <span>Study reminders</span>

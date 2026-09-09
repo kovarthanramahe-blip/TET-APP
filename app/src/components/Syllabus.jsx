@@ -41,7 +41,12 @@ export default function Syllabus() {
                 };
                 return (
                   <div key={t[0]} style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button type="button" onClick={cycle} style={{
+                    {/* Decorative duplicate of the labeled chip button below (same
+                        cycle() action) -- hidden from keyboard/screen-reader
+                        navigation so it isn't a blank, unlabeled tab-stop; the
+                        chip button is the one accessible way to reach this
+                        control by keyboard. Still mouse/touch-clickable. */}
+                    <button type="button" onClick={cycle} tabIndex={-1} aria-hidden="true" style={{
                       width: '14px', height: '14px', flex: 'none', borderRadius: '50%', cursor: 'pointer', padding: 0,
                       background: c ? confColor(c) : 'transparent',
                       border: '1px solid ' + (c ? confColor(c) : 'var(--color-divider)')
@@ -58,7 +63,7 @@ export default function Syllabus() {
                         {topicNotes.length} note{topicNotes.length > 1 ? 's' : ''}
                       </button>
                     )}
-                    <button type="button" onClick={cycle} style={{
+                    <button type="button" onClick={cycle} aria-label={t[0] + ' confidence: ' + confName(c) + '. Press to cycle.'} style={{
                       ...chip(c > 0, true),
                       color: c ? confColor(c) : 'var(--color-text)',
                       borderColor: c ? confColor(c) : 'var(--color-divider)',

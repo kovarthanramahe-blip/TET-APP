@@ -41,6 +41,7 @@ export default function Sidebar() {
             key={v[0]}
             type="button"
             onClick={() => actions.setView(v[0])}
+            aria-current={state.view === v[0] ? 'page' : undefined}
             style={navBtn(state.view === v[0])}
           >
             <span>{v[1]}</span>
@@ -61,6 +62,7 @@ export default function Sidebar() {
               key={lv}
               type="button"
               onClick={() => actions.setLevel(lv)}
+              aria-pressed={state.level === lv}
               style={{ ...navBtn(state.level === lv), fontSize: '13px', padding: '5px 9px', marginBottom: '3px' }}
             >
               {lv}
@@ -72,6 +74,7 @@ export default function Sidebar() {
           type="button"
           className="btn btn-secondary"
           onClick={actions.toggleTheme}
+          aria-pressed={state.theme === 'dark'}
           style={{ justifyContent: 'space-between' }}
         >
           <span>{state.theme === 'dark' ? 'Dark' : 'Light'}</span>
@@ -81,23 +84,25 @@ export default function Sidebar() {
         <ExportPanel />
         <ReminderPanel />
 
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={actions.resetProgress}
-          style={{
-            justifyContent: 'center',
-            borderColor: state.confirmReset ? '#b3392f' : 'var(--color-divider)',
-            color: state.confirmReset ? '#b3392f' : 'var(--color-text)'
-          }}
-        >
-          {state.confirmReset ? 'Tap again to confirm' : 'Reset my progress'}
-        </button>
-        <p style={{ fontSize: '11px', opacity: .6, margin: 0, lineHeight: 1.4 }}>
-          {state.confirmReset
-            ? 'Clears every logged session, streak, test attempt, card schedule and mastery mark. Syllabus, tasks and notes stay.'
-            : 'Start from zero — clears the sample study data.'}
-        </p>
+        <div aria-live="polite">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={actions.resetProgress}
+            style={{
+              justifyContent: 'center',
+              borderColor: state.confirmReset ? '#b3392f' : 'var(--color-divider)',
+              color: state.confirmReset ? '#b3392f' : 'var(--color-text)'
+            }}
+          >
+            {state.confirmReset ? 'Tap again to confirm' : 'Reset my progress'}
+          </button>
+          <p style={{ fontSize: '11px', opacity: .6, margin: 'var(--space-2) 0 0', lineHeight: 1.4 }}>
+            {state.confirmReset
+              ? 'Clears every logged session, streak, test attempt, card schedule and mastery mark. Syllabus, tasks and notes stay.'
+              : 'Start from zero — clears the sample study data.'}
+          </p>
+        </div>
       </div>
     </aside>
   );

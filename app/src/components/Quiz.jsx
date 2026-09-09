@@ -42,7 +42,7 @@ function QuizSetup({ s, actions }) {
             <label>Question types</label>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {TYPE_OPTIONS.map(t => (
-                <button key={t[0]} type="button" style={chip(s.quizTypes.includes(t[0]), true)}
+                <button key={t[0]} type="button" aria-pressed={s.quizTypes.includes(t[0])} style={chip(s.quizTypes.includes(t[0]), true)}
                   onClick={() => actions.setQuizTypes(s.quizTypes.includes(t[0]) ? s.quizTypes.filter(x => x !== t[0]) : s.quizTypes.concat([t[0]]))}>
                   {t[1]}
                 </button>
@@ -53,7 +53,7 @@ function QuizSetup({ s, actions }) {
             <label>Parts of the paper</label>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {PART_OPTIONS.map(p => (
-                <button key={p} type="button" style={chip(s.quizParts.includes(p), true)}
+                <button key={p} type="button" aria-pressed={s.quizParts.includes(p)} style={chip(s.quizParts.includes(p), true)}
                   onClick={() => actions.setQuizParts(s.quizParts.includes(p) ? s.quizParts.filter(x => x !== p) : s.quizParts.concat([p]))}>
                   {p.replace(' & Pedagogy', '')}
                 </button>
@@ -64,7 +64,7 @@ function QuizSetup({ s, actions }) {
             <label>Mode</label>
             <div style={{ display: 'flex', gap: '6px' }}>
               {EXAM_MODES.map(m => (
-                <button key={m} type="button" style={chip(s.quizMode === m, false)} onClick={() => actions.setQuizMode(m)}>{m}</button>
+                <button key={m} type="button" aria-pressed={s.quizMode === m} style={chip(s.quizMode === m, false)} onClick={() => actions.setQuizMode(m)}>{m}</button>
               ))}
             </div>
           </div>

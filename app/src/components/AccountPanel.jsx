@@ -36,6 +36,7 @@ export default function AccountPanel() {
             <input
               className="input"
               type="email"
+              aria-label="Email address"
               placeholder="you@example.com"
               value={email}
               onChange={e => setEmail(e.target.value)}

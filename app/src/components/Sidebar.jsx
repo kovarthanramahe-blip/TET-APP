@@ -4,6 +4,7 @@ import { VIEWS, SYLLABUS, navBadgesFor, daysUntilExam } from '../lib/logic.js';
 import { navBtn } from '../lib/styleHelpers.js';
 import AccountPanel from './AccountPanel.jsx';
 import ExportPanel from './ExportPanel.jsx';
+import BackupPanel from './BackupPanel.jsx';
 import ReminderPanel from './ReminderPanel.jsx';
 
 export default function Sidebar() {
@@ -82,6 +83,7 @@ export default function Sidebar() {
         </button>
 
         <ExportPanel />
+        <BackupPanel />
         <ReminderPanel />
 
         <div aria-live="polite">

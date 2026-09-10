@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
-  seedState, loadState, saveState,
+  seedState, loadState, saveState, sanitizeForPersistence,
   focusMins, breakMins, phaseLength, logSessionState, finishPhaseState,
   minutesOn, totalMinutes, streakCount, goalStreakCount,
   modulesFor, topicKey, confOf, globalSearch,
@@ -75,6 +75,17 @@ describe('seedState / loadState / saveState', () => {
     const s = { ...seedState(), quizStage: 'result' };
     saveState(s);
     expect(loadState().quizStage).toBe('result');
+  });
+});
+
+describe('sanitizeForPersistence', () => {
+  it('is the exact same rule saveState() persists through, exposed for reuse by the backup exporter', () => {
+    const s = { ...seedState(), running: true, quizStage: 'active', quiz: [{ type: 'mcq' }], level: 'Level 2 (TGT)' };
+    const sanitized = sanitizeForPersistence(s);
+    expect(sanitized.running).toBe(false);
+    expect(sanitized.quizStage).toBe('setup');
+    expect(sanitized.quiz).toBeNull();
+    expect(sanitized.level).toBe('Level 2 (TGT)');
   });
 });
 

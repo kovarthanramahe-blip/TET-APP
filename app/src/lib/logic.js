@@ -58,13 +58,21 @@ export function loadState() {
   return base;
 }
 
-export function saveState(state) {
-  const s = Object.assign({}, state, {
+// Phase 19: pulled out of saveState() so a full-fidelity backup export can
+// apply the exact same "what actually counts as durable state" rule --  an
+// in-progress timer or quiz mid-attempt means nothing once reloaded
+// elsewhere, so both strip it identically rather than the backup format
+// silently diverging from what's already persisted to localStorage.
+export function sanitizeForPersistence(state) {
+  return Object.assign({}, state, {
     running: false,
     quizStage: state.quizStage === 'active' ? 'setup' : state.quizStage,
     quiz: null
   });
-  writeStoredState(s);
+}
+
+export function saveState(state) {
+  writeStoredState(sanitizeForPersistence(state));
 }
 
 export function focusMins(s) { return Math.max(1, Number(s.pomodoroMinutes ?? 25)); }

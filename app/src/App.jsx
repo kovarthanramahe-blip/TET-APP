@@ -6,6 +6,7 @@ import QuoteBar from './components/QuoteBar.jsx';
 import MigrationBanner from './components/MigrationBanner.jsx';
 import PwaUpdateBanner from './components/PwaUpdateBanner.jsx';
 import { useStudyReminders } from './hooks/useStudyReminders.js';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 // Phase 14: each view is its own chunk, loaded only when actually
 // navigated to, rather than all eight shipping in the one entry bundle
@@ -94,9 +95,15 @@ function Shell() {
       <main style={{ flex: '1 1 560px', minWidth: '320px', padding: 'var(--space-6) var(--space-8)', maxWidth: '1180px' }}>
         <Header />
         <QuoteBar />
-        <Suspense fallback={<ViewFallback />}>
-          <ViewComponent />
-        </Suspense>
+        {/* Phase 28: keyed by view so navigating away from a broken view
+            (via Sidebar, which lives outside this boundary and stays
+            usable) remounts a fresh boundary for the next one, rather than
+            needing its own explicit reset wiring. */}
+        <ErrorBoundary key={state.view}>
+          <Suspense fallback={<ViewFallback />}>
+            <ViewComponent />
+          </Suspense>
+        </ErrorBoundary>
       </main>
       <MigrationBanner />
       <PwaUpdateBanner />
@@ -106,8 +113,15 @@ function Shell() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <Shell />
-    </AppProvider>
+    // Phase 28: a second, outer boundary -- the one around each view above
+    // only ever catches errors from inside <main>, so a crash in
+    // AppProvider's own hooks, or in Sidebar/Header/QuoteBar, would
+    // otherwise still take down the entire app with nothing left standing
+    // to navigate away with.
+    <ErrorBoundary>
+      <AppProvider>
+        <Shell />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

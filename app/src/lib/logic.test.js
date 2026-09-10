@@ -312,6 +312,33 @@ describe('modulesWithCustom / addCustomTopicState / deleteCustomTopicState', () 
       .toEqual(modulesFor({ ...withTopic, level: 'Level 2 (TGT)' }));
   });
 
+  // Phase 37: topicKey() joins level/module/topic with "|", and every
+  // consumer parses that back apart expecting exactly 3 parts (see
+  // topicKey()'s own callers -- Notes.jsx, minutesByModule(),
+  // migrateToSupabase.js's confidence resolution, which specifically
+  // aborts the entire migration if parts.length !== 3). A custom
+  // module/topic name is free-text with no restriction on what's typed,
+  // so a literal "|" in either field must never survive into the stored
+  // topic.
+  it('strips a literal "|" out of the module/topic name so the stored key still has exactly 3 parts', () => {
+    const s = { ...seedState(), customTopicModule: 'Rivers | Lakes', customTopicName: 'Do\'s | Don\'ts', customTopicDesc: '' };
+    const next = addCustomTopicState(s);
+    const topic = next.customTopics[0];
+
+    expect(topic.moduleName).not.toContain('|');
+    expect(topic.name).not.toContain('|');
+    expect(topic.moduleName).toBe('Rivers  Lakes');
+    expect(topic.name).toBe('Do\'s  Don\'ts');
+
+    const key = topicKey(topic.level, topic.moduleName, topic.name);
+    expect(key.split('|')).toHaveLength(3);
+  });
+
+  it('is a no-op if the module/topic name is nothing but pipe characters', () => {
+    const s = { ...seedState(), customTopicModule: '|||', customTopicName: 'Topic', customTopicDesc: '' };
+    expect(addCustomTopicState(s)).toBe(s);
+  });
+
   it('modulePerformance/masteredCount/globalSearch pick up custom topics via modulesWithCustom', () => {
     const s = { ...seedState(), customTopicModule: 'A Whole New Module', customTopicName: 'Topic X', customTopicDesc: 'desc here' };
     const next = addCustomTopicState(s);

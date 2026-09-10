@@ -170,9 +170,23 @@ export function modulesWithCustom(s) {
 // Mirrors addCustomCardState()'s local-mode CRUD shape. Always attaches to
 // the CURRENT level (s.level) -- Syllabus.jsx only ever shows one level's
 // modules at a time, so there's no separate level picker in the add form.
+// Phase 37: topicKey() below joins level/module/topic with "|", and every
+// consumer (Notes.jsx's topic picker, minutesByModule()/minutesByTopic(),
+// migrateToSupabase.js's confidence-key resolution, ...) parses that back
+// apart with a plain split('|') expecting exactly 3 parts. Both fields
+// here are free-text <input>s (see Syllabus.jsx's "Add a custom topic"
+// form) with no restriction on what a user types -- a module or topic
+// name containing a literal "|" would silently corrupt that format: at
+// best a truncated/wrong module or topic name shows up in an analytics
+// breakdown, at worst migrateToSupabase.js's `parts.length === 3` check
+// fails and throws, aborting a user's entire one-time cloud migration
+// over one topic name. Seeded/built-in syllabus data can never trigger
+// this (it's fixed, developer-authored content with no "|" in it) --
+// only a custom topic/module name can, so stripping it here is the one
+// place this needs to be guarded.
 export function addCustomTopicState(s) {
-  const moduleName = s.customTopicModule.trim();
-  const name = s.customTopicName.trim();
+  const moduleName = s.customTopicModule.trim().replace(/\|/g, '');
+  const name = s.customTopicName.trim().replace(/\|/g, '');
   if (!moduleName || !name) return s;
   const topic = { id: 'topic' + Date.now(), level: s.level, moduleName, name, desc: s.customTopicDesc.trim() };
   return {

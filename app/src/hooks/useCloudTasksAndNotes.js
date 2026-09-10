@@ -173,6 +173,18 @@ export function useCloudTasksAndNotes({ active, userId, baseState, baseUpdate, b
         return rest;
       });
     } catch (e) {
+      // The note was NOT actually deleted -- if a debounced edit was
+      // still pending when this ran, its timer was already cleared above;
+      // silently dropping it here would lose that edit outright, since
+      // the note is still sitting on its old (pre-edit) content in
+      // Supabase with nothing left to save it. The local `notes` state
+      // still shows the edit (from updateNote()'s own optimistic update),
+      // so without this it would look saved right up until the next
+      // reload quietly reverted it.
+      if (pending) {
+        const keyToTopicId = topicMapsRef.current?.keyToTopicId || new Map();
+        cloudUpdateNote(userId, keyToTopicId, id, pending.patch).catch(() => { /* best-effort */ });
+      }
       setError(e?.message || 'Could not delete the note.');
     }
   }, [userId, baseActions]);

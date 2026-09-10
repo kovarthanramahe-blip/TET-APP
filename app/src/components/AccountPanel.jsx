@@ -18,16 +18,31 @@ export default function AccountPanel() {
   // AppContext.jsx's existing logout-cleanup effect (the cross-user
   // localStorage fix from an earlier phase), so no new state-clearing
   // logic is needed here at all.
+  //
+  // The two awaits are deliberately in separate try/catch blocks, not one
+  // combined try around both: a failure in signOut() (a network hiccup,
+  // say) happens AFTER the account is already gone server-side, so
+  // reporting it as "Could not delete your account" would be a lie the
+  // user could act on -- e.g. clicking "Permanently delete" again against
+  // an account that no longer exists. Once the account itself is
+  // confirmed deleted, a failed local sign-out is handled by reloading
+  // instead: that resets every piece of in-memory/client auth state
+  // cleanly regardless of what signOut() itself managed to clean up.
   const handleDelete = async () => {
     if (confirmText !== 'DELETE' || deleting) return;
     setDeleting(true);
     setDeleteError('');
     try {
       await deleteOwnAccount();
-      await signOut();
     } catch (e) {
       setDeleteError(e?.message || 'Could not delete your account.');
       setDeleting(false);
+      return;
+    }
+    try {
+      await signOut();
+    } catch (e) {
+      window.location.reload();
     }
   };
 

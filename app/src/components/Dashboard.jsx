@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../AppContext.jsx';
 import {
   totalMinutes, minutesOn, streakCount, bestScore, modulesFor, confOf,
@@ -10,6 +11,7 @@ import {
 } from '../lib/logic.js';
 import { today, fmtWeekday, fmtShort } from '../lib/dates.js';
 import { chip, checkbox } from '../lib/styleHelpers.js';
+import { renderMarkdown } from '../lib/markdown.js';
 import { useQuizPartPerformance } from '../hooks/useQuizPartPerformance.js';
 
 export default function Dashboard() {
@@ -54,6 +56,19 @@ export default function Dashboard() {
   // would be unreadable clutter, so those ranges rely on the hover title
   // and the summary line below instead.
   const [trendDays, setTrendDays] = useState(7);
+
+  // Phase 16: which notes go on the printable revision sheet. Deliberately
+  // local, ephemeral UI state -- not synced to the cloud or persisted --
+  // since it's a rarely-used, low-stakes choice that resets to "all notes"
+  // on reload.
+  const [selectedNoteIds, setSelectedNoteIds] = useState(() => new Set(s.notes.map(n => n.id)));
+  const toggleNoteSelected = (id) => {
+    setSelectedNoteIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
   const trendSeries = dailyMinutesSeries(s, trendDays);
   const trendMax = Math.max(1, ...trendSeries.map(d => d.mins));
   const trendTotalMins = trendSeries.reduce((a, d) => a + d.mins, 0);
@@ -130,6 +145,7 @@ export default function Dashboard() {
   const performance = modulePerformance(s, quizByPart);
   const weakestAreas = performance.slice(0, 2);
   const strongestAreas = performance.slice(-2).reverse();
+  const selectedNotes = s.notes.filter(n => selectedNoteIds.has(n.id));
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
@@ -411,6 +427,65 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <div>
+        <h4>Revision sheet</h4>
+        <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
+        <p style={{ fontSize: '12px', opacity: .6, margin: '0 0 var(--space-3)' }}>
+          Choose which notes to include, then print a one-page summary with your exam countdown, weakest/strongest areas, and the selected notes.
+        </p>
+        {s.notes.length === 0 && (
+          <p style={{ fontSize: '13px', opacity: .6, margin: '0 0 var(--space-3)' }}>No notes yet — add some in the Notes tab first.</p>
+        )}
+        {s.notes.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: 'var(--space-4)' }}>
+            {s.notes.map(n => (
+              <label key={n.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '13px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={selectedNoteIds.has(n.id)} onChange={() => toggleNoteSelected(n.id)} />
+                {n.title || 'Untitled note'}
+              </label>
+            ))}
+          </div>
+        )}
+        <button type="button" className="btn btn-primary" onClick={() => window.print()}>
+          Print revision sheet
+        </button>
+      </div>
+
+      {createPortal(
+        <div className="print-only">
+          <h1 style={{ fontFamily: 'var(--font-heading)', margin: '0 0 4px' }}>HTET Study Desk — Revision Sheet</h1>
+          <p style={{ margin: '0 0 16px', fontSize: '13px' }}>{s.level} · Generated {fmtShort(today())}</p>
+          <p style={{ fontSize: '14px', margin: '0 0 16px' }}>
+            {examDays === null && 'No exam date set.'}
+            {examDays !== null && (
+              examDays > 0 ? examDays + ' day' + (examDays === 1 ? '' : 's') + ' until your exam.'
+                : examDays === 0 ? 'Today is exam day.'
+                : 'Exam date has passed.'
+            )}
+          </p>
+          <h3>Weakest areas</h3>
+          <ul>
+            {weakestAreas.map(m => (
+              <li key={m.name}>{m.name} — {m.confidencePct}% mastered{m.quizPct !== null ? ' · ' + m.quizPct + '% quiz avg' : ''}</li>
+            ))}
+          </ul>
+          <h3>Strongest areas</h3>
+          <ul>
+            {strongestAreas.map(m => (
+              <li key={m.name}>{m.name} — {m.confidencePct}% mastered{m.quizPct !== null ? ' · ' + m.quizPct + '% quiz avg' : ''}</li>
+            ))}
+          </ul>
+          {selectedNotes.length > 0 && <h3>Notes</h3>}
+          {selectedNotes.map(n => (
+            <div key={n.id} style={{ marginBottom: '16px', pageBreakInside: 'avoid' }}>
+              <h4 style={{ margin: '0 0 4px' }}>{n.title || 'Untitled note'}</h4>
+              <div dangerouslySetInnerHTML={{ __html: renderMarkdown(n.body) }} />
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
     </section>
   );
 }

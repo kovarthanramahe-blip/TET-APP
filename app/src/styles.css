@@ -248,3 +248,14 @@ textarea.input { min-height: 90px; resize: vertical; }
 }
 .dialog-body { font-size: 14px; opacity: 0.85; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+
+/* Phase 16: printable revision sheet. .print-only is portaled to
+   document.body (a sibling of the app's .no-print root), so it's immune
+   to the ancestor display:none below -- a hidden ancestor can't be
+   un-hidden via a descendant's own display, so the two must never nest. */
+.print-only { display: none; }
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  .print-only * { color: #000 !important; background: transparent !important; }
+}

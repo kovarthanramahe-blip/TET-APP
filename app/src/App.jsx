@@ -47,7 +47,7 @@ function Shell() {
   useStudyReminders(state);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}>
+    <div className="no-print" style={{ minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}>
       <Sidebar />
       <main style={{ flex: '1 1 560px', minWidth: '320px', padding: 'var(--space-6) var(--space-8)', maxWidth: '1180px' }}>
         <Header />

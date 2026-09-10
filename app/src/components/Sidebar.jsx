@@ -6,6 +6,7 @@ import AccountPanel from './AccountPanel.jsx';
 import ExportPanel from './ExportPanel.jsx';
 import BackupPanel from './BackupPanel.jsx';
 import ReminderPanel from './ReminderPanel.jsx';
+import InstallPrompt from './InstallPrompt.jsx';
 
 // Phase 27: this same element is an always-visible column on desktop and an
 // off-canvas drawer on mobile (see .app-sidebar in styles.css) -- `open`
@@ -142,6 +143,8 @@ export default function Sidebar({ open = false, onRequestClose = () => {} }) {
           <span>{state.theme === 'dark' ? 'Dark' : 'Light'}</span>
           <span style={{ opacity: .65, fontSize: '12px' }}>theme</span>
         </button>
+
+        <InstallPrompt />
 
         <ExportPanel />
         <BackupPanel />

@@ -14,6 +14,7 @@ import Flashcards from '../components/Flashcards.jsx';
 import Notes from '../components/Notes.jsx';
 import Badges from '../components/Badges.jsx';
 import BackupPanel from '../components/BackupPanel.jsx';
+import { computeAccessibleName } from 'dom-accessibility-api';
 
 // Phase 24: a permanent, CI-enforced accessibility regression net -- axe-core
 // scans real rendered output (against the actual WCAG rules, not a manual
@@ -193,5 +194,28 @@ describe('accessibility: AccountPanel\'s destructive delete-confirm state', () =
 
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+});
+
+// Phase 30: axe doesn't flag two different-purpose controls sharing an
+// accessible name (it's not itself a WCAG violation), but it's a real
+// ambiguity for anyone navigating by name -- a screen reader's "find by
+// label", browser find-by-label, or automated tooling alike -- and it's
+// what caused ExportPanel's "Notes"/"Tasks" export buttons to exactly
+// collide with the Sidebar nav buttons of the same name (a collision that
+// broke real-browser test selectors during three separate earlier phases
+// before it was fixed here). This is a plain accessible-name uniqueness
+// check, not an axe scan, since axe has no rule for it.
+describe('accessibility: no two controls in the sidebar share an accessible name', () => {
+  it('every button under Sidebar has a unique accessible name', () => {
+    const { container } = withProvider(<Sidebar />);
+    const names = Array.from(container.querySelectorAll('button')).map(computeAccessibleName);
+    const seen = new Set();
+    const duplicates = names.filter(name => {
+      if (seen.has(name)) return true;
+      seen.add(name);
+      return false;
+    });
+    expect(duplicates).toEqual([]);
   });
 });

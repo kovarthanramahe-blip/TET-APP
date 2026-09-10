@@ -18,8 +18,22 @@ export default function ExportPanel() {
         Export data
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+        {/* Phase 30: the visible label stays short (matches this sidebar's
+            existing density), but "Notes"/"Tasks" here otherwise exactly
+            duplicate the Sidebar nav buttons of the same name -- an
+            identical accessible name on two controls that do completely
+            different things (export a CSV vs. switch views). An explicit
+            aria-label disambiguates without changing the compact visual
+            text. */}
         {buttons.map(b => (
-          <button key={b.label} type="button" className="btn btn-secondary" style={{ fontSize: '12px', padding: '5px 9px' }} onClick={b.run}>
+          <button
+            key={b.label}
+            type="button"
+            className="btn btn-secondary"
+            style={{ fontSize: '12px', padding: '5px 9px' }}
+            aria-label={'Export ' + b.label.toLowerCase()}
+            onClick={b.run}
+          >
             {b.label}
           </button>
         ))}

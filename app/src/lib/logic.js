@@ -451,11 +451,23 @@ export function quoteFor(i) {
   return QUOTES[Math.abs(i) % QUOTES.length];
 }
 
+// Phase 38: this is a PREVIEW of what applySrsGrade() below will actually
+// do when a grade button is clicked (Flashcards.jsx shows its result right
+// on each button, e.g. "Easy: 26d"). applySrsGrade() updates the ease
+// factor first and then computes the interval from that NEW ease --
+// standard SM-2 order -- but this used to compute the interval from the
+// card's CURRENT (pre-update) ease instead. For "Good" the ease delta is
+// 0 so the two happened to agree, but "Hard" (-0.15) and "Easy" (+0.1)
+// diverged from the real outcome on any card past its first two reviews
+// (e.g. {ease: 2.5, interval: 10} graded Easy previewed "25d" but actually
+// scheduled 26). Mirroring applySrsGrade()'s own ease update here is what
+// keeps the preview honest.
 export function nextIntervalFor(cs, g) {
   if (!cs) return '';
   if (g === 0) return 'today';
   const reps = cs.reps + 1;
-  const iv = reps === 1 ? 1 : reps === 2 ? 3 : Math.max(1, Math.round(cs.interval * cs.ease * (g === 1 ? 0.6 : 1)));
+  const ease = Math.max(1.3, Math.min(3.0, cs.ease + (g === 1 ? -0.15 : g === 2 ? 0 : 0.1)));
+  const iv = reps === 1 ? 1 : reps === 2 ? 3 : Math.max(1, Math.round(cs.interval * ease * (g === 1 ? 0.6 : 1)));
   return iv + 'd';
 }
 

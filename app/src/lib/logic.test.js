@@ -663,6 +663,27 @@ describe('flashcard SRS: cardState / dueCards / nextIntervalFor / applySrsGrade 
     expect(nextIntervalFor({ reps: 1, ease: 2.5, interval: 1 }, 2)).toBe('3d');
   });
 
+  // Phase 38: nextIntervalFor() is a PREVIEW of what applySrsGrade() will
+  // actually schedule (Flashcards.jsx shows it right on the grade button),
+  // so for every grade the two must always agree -- not just for "Good",
+  // where the ease delta happens to be 0 and would hide a divergence.
+  it('nextIntervalFor matches what applySrsGrade actually schedules, for every grade', () => {
+    const cs = { ease: 2.5, interval: 10, reps: 3 };
+    for (const g of [1, 2, 3]) {
+      const preview = nextIntervalFor(cs, g);
+      const actual = applySrsGrade(cs, g).interval;
+      expect(preview).toBe(actual + 'd');
+    }
+  });
+
+  it('nextIntervalFor accounts for the ease change on "Hard" and "Easy", not just "Good"', () => {
+    // {ease: 2.5, interval: 10} graded Easy: ease becomes 2.6, so the
+    // interval is round(10 * 2.6) = 26, not round(10 * 2.5) = 25.
+    expect(nextIntervalFor({ ease: 2.5, interval: 10, reps: 3 }, 3)).toBe('26d');
+    // Graded Hard: ease becomes 2.35, interval round(10 * 2.35 * 0.6) = 14.
+    expect(nextIntervalFor({ ease: 2.5, interval: 10, reps: 3 }, 1)).toBe('14d');
+  });
+
   it('applySrsGrade resets reps/interval and drops ease on "Again" (grade 0)', () => {
     const next = applySrsGrade({ ease: 2.5, interval: 10, reps: 3 }, 0);
     expect(next.reps).toBe(0);

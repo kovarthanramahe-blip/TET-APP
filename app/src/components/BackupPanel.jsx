@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../AppContext.jsx';
-import { exportBackupJSON, parseBackupFile } from '../lib/exportData.js';
+import { exportBackupJSON, parseBackupFile, MAX_BACKUP_FILE_BYTES } from '../lib/exportData.js';
 import { seedState } from '../lib/logic.js';
 
 // Restoring a backup replaces base.state wholesale via update() -- for a
@@ -28,6 +28,13 @@ export default function BackupPanel() {
     if (!file) return;
     setError('');
     setRestored(false);
+    // Reject an oversized file by its reported size before ever reading it
+    // into memory -- cheaper than letting parseBackupFile's own length
+    // check catch it only after the full contents have been loaded.
+    if (file.size > MAX_BACKUP_FILE_BYTES) {
+      setError('That backup file is too large.');
+      return;
+    }
     const text = await file.text();
     const result = parseBackupFile(text);
     if (result.error) { setError(result.error); return; }
@@ -36,7 +43,13 @@ export default function BackupPanel() {
   };
 
   const confirmRestore = () => {
-    update(() => Object.assign(seedState(), pendingState));
+    // Spread, not Object.assign: pendingState is already a validated,
+    // allowlisted-keys-only object from parseBackupFile(), but spread is
+    // used here too as defense in depth -- unlike Object.assign, it copies
+    // properties by value (CreateDataProperty) rather than through [[Set]],
+    // so it can never be tricked into reassigning the target's prototype
+    // even if that validation were ever loosened later.
+    update(() => ({ ...seedState(), ...pendingState }));
     setConfirming(false);
     setPendingState(null);
     setRestored(true);

@@ -281,6 +281,76 @@ textarea.input { min-height: 90px; resize: vertical; }
 .dialog-body { font-size: 14px; opacity: 0.85; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
 
+/* Phase 27: the two-column notes list + editor layout doesn't have room to
+   stay side-by-side below the mobile breakpoint (see the media query
+   further down) -- this was the one view real-browser testing at 390px
+   found actually overflowing horizontally (504px content in a 390px
+   viewport), not just cramped. */
+.notes-layout {
+  display: grid; grid-template-columns: minmax(180px,240px) 1fr;
+  gap: var(--space-6); align-items: start;
+}
+
+/* Phase 27: mobile off-canvas navigation. Below the breakpoint, .app-sidebar
+   (the same element that's an always-visible column on desktop) becomes a
+   fixed drawer that slides in from the left; .mobile-topbar's hamburger
+   button is the only way to open it, since it's the only trigger hidden
+   above the breakpoint. The visibility transition is delayed on the way
+   out (but not the way in) so the drawer's controls stay in the tab order
+   and hit-testable for the full slide-out animation, and only actually
+   leave the accessibility tree once fully off-screen -- the same
+   "reachable while visible, not reachable while hidden" bar Phase 24 held
+   display:none to, just met here with a transform instead. */
+.app-shell {
+  min-height: 100vh; background: var(--color-bg); color: var(--color-text);
+  display: flex; flex-wrap: wrap; align-items: stretch;
+}
+.app-sidebar {
+  flex: 0 0 232px; min-width: 200px; border-right: 1px solid var(--color-divider);
+  padding: var(--space-6) var(--space-4); display: flex; flex-direction: column; gap: var(--space-6);
+  position: relative;
+}
+.mobile-topbar, .mobile-menu-btn, .sidebar-backdrop, .sidebar-close-btn { display: none; }
+
+@media (max-width: 760px) {
+  .mobile-topbar {
+    display: flex; align-items: center; gap: var(--space-3);
+    width: 100%; padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-divider);
+  }
+  .mobile-topbar-title { font-family: var(--font-heading); font-size: 16px; }
+  .mobile-menu-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; flex: none; font-size: 18px; line-height: 1;
+    color: var(--color-text); background: var(--color-surface);
+    border: 1px solid var(--color-divider); border-radius: var(--radius-md); cursor: pointer;
+  }
+  .app-sidebar {
+    position: fixed; top: 0; left: 0; z-index: 50;
+    width: min(84vw, 300px); height: 100vh; max-width: 300px;
+    background: var(--color-bg); box-shadow: var(--shadow-lg);
+    overflow-y: auto; transform: translateX(-100%);
+    transition: transform .25s ease, visibility 0s linear .25s;
+    visibility: hidden;
+  }
+  .app-sidebar.sidebar-open {
+    transform: translateX(0); visibility: visible;
+    transition: transform .25s ease, visibility 0s linear 0s;
+  }
+  .sidebar-close-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    position: absolute; top: var(--space-3); right: var(--space-3);
+    width: 32px; height: 32px; font-size: 20px; line-height: 1;
+    color: var(--color-text); background: transparent;
+    border: 1px solid var(--color-divider); border-radius: var(--radius-md); cursor: pointer;
+  }
+  .sidebar-backdrop.open {
+    display: block; position: fixed; inset: 0; z-index: 49;
+    background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+  }
+  .notes-layout { grid-template-columns: 1fr; }
+}
+
 /* Phase 16: printable revision sheet. .print-only is portaled to
    document.body (a sibling of the app's .no-print root), so it's immune
    to the ancestor display:none below -- a hidden ancestor can't be

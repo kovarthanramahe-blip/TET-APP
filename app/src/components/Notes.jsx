@@ -18,7 +18,7 @@ export default function Notes() {
   };
 
   return (
-    <section style={{ display: 'grid', gridTemplateColumns: 'minmax(180px,240px) 1fr', gap: 'var(--space-6)', alignItems: 'start' }}>
+    <section className="notes-layout">
       <div>
         <button type="button" className="btn btn-primary btn-block" onClick={actions.addNote} style={{ margin: '0 0 var(--space-3)' }}>New note</button>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>

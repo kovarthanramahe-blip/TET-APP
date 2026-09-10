@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { AppProvider, useApp } from './AppContext.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import Header from './components/Header.jsx';
@@ -47,9 +47,50 @@ function Shell() {
   const ViewComponent = VIEW_COMPONENTS[state.view] || Dashboard;
   useStudyReminders(state);
 
+  // Phase 27: below the mobile breakpoint, Sidebar becomes an off-canvas
+  // drawer (see .app-sidebar in styles.css) instead of the always-visible
+  // column it is on desktop -- sidebarOpen/menuBtnRef only ever matter
+  // there, since the hamburger button that's the sole way to set
+  // sidebarOpen true is itself hidden above the breakpoint.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const menuBtnRef = useRef(null);
+
+  // Picking a view is the natural "done with the menu" signal on mobile --
+  // closing it here means every nav button doubles as its own close
+  // action, instead of requiring a second tap on the backdrop.
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [state.view]);
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+    // Returns focus to the button that opened the drawer -- without this a
+    // keyboard user's focus would silently fall back to <body> once the
+    // drawer (and everything inside it) leaves the accessibility tree.
+    menuBtnRef.current?.focus();
+  };
+
   return (
-    <div className="no-print" style={{ minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}>
-      <Sidebar />
+    <div className="no-print app-shell">
+      <div className="mobile-topbar">
+        <button
+          type="button"
+          ref={menuBtnRef}
+          className="mobile-menu-btn"
+          aria-label="Open menu"
+          aria-expanded={sidebarOpen}
+          onClick={() => setSidebarOpen(true)}
+        >
+          ☰
+        </button>
+        <span className="mobile-topbar-title">HTET Study Desk</span>
+      </div>
+      <div
+        className={'sidebar-backdrop' + (sidebarOpen ? ' open' : '')}
+        onClick={closeSidebar}
+        aria-hidden="true"
+      ></div>
+      <Sidebar open={sidebarOpen} onRequestClose={closeSidebar} />
       <main style={{ flex: '1 1 560px', minWidth: '320px', padding: 'var(--space-6) var(--space-8)', maxWidth: '1180px' }}>
         <Header />
         <QuoteBar />

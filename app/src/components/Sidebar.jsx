@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useApp } from '../AppContext.jsx';
 import { VIEWS, SYLLABUS, navBadgesFor, daysUntilExam } from '../lib/logic.js';
 import { navBtn } from '../lib/styleHelpers.js';
@@ -7,16 +7,75 @@ import ExportPanel from './ExportPanel.jsx';
 import BackupPanel from './BackupPanel.jsx';
 import ReminderPanel from './ReminderPanel.jsx';
 
-export default function Sidebar() {
+// Phase 27: this same element is an always-visible column on desktop and an
+// off-canvas drawer on mobile (see .app-sidebar in styles.css) -- `open`
+// only ever becomes true via App.jsx's hamburger button, which itself only
+// renders under the mobile breakpoint, so the dialog role/focus handling
+// below is only ever exercised there. On desktop `open` stays false and
+// none of it engages.
+export default function Sidebar({ open = false, onRequestClose = () => {} }) {
   const { state, actions } = useApp();
   const navBadges = navBadgesFor(state);
   const examDays = daysUntilExam(state);
+  const asideRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const node = asideRef.current;
+    node?.querySelector('.sidebar-close-btn')?.focus();
+
+    // Locks background scroll while the drawer is open -- a standard
+    // off-canvas-menu behavior, and without it a long page (Dashboard, at
+    // ~1600px tall on a phone) keeps scrolling underneath the open drawer.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    function focusable() {
+      return Array.from(node.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+        .filter(el => !el.disabled);
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onRequestClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const items = focusable();
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, onRequestClose]);
 
   return (
-    <aside style={{
-      flex: '0 0 232px', minWidth: '200px', borderRight: '1px solid var(--color-divider)',
-      padding: 'var(--space-6) var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)'
-    }}>
+    // Phase 27: this is a <div>, not the more semantically obvious <aside>,
+    // specifically so it can carry role="dialog" when acting as the mobile
+    // drawer -- axe (correctly) flags "dialog" as a disallowed role
+    // override on <aside> per ARIA in HTML (its allowed roles are
+    // complementary/feed/none/note/presentation/region/search, no dialog).
+    <div
+      ref={asideRef}
+      className={'app-sidebar' + (open ? ' sidebar-open' : '')}
+      role={open ? 'dialog' : undefined}
+      aria-modal={open ? 'true' : undefined}
+      aria-label={open ? 'Navigation menu' : undefined}
+    >
+      <button type="button" className="sidebar-close-btn" aria-label="Close menu" onClick={onRequestClose}>×</button>
       <div>
         <div style={{ fontFamily: 'var(--font-heading)', fontSize: '26px', lineHeight: 1.05, letterSpacing: '-0.02em' }}>
           HTET<br />Preparation
@@ -108,6 +167,6 @@ export default function Sidebar() {
           </p>
         </div>
       </div>
-    </aside>
+    </div>
   );
 }

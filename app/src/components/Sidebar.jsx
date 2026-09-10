@@ -46,7 +46,9 @@ export default function Sidebar() {
             style={navBtn(state.view === v[0])}
           >
             <span>{v[1]}</span>
-            <span style={{ fontSize: '11px', fontFeatureSettings: "'tnum'", opacity: .75 }}>{navBadges[v[0]] || ''}</span>
+            {/* Phase 25: full opacity for the active nav item -- same
+                tinted-background reasoning as Notes.jsx's topic caption. */}
+            <span style={{ fontSize: '11px', fontFeatureSettings: "'tnum'", opacity: state.view === v[0] ? 1 : .75 }}>{navBadges[v[0]] || ''}</span>
           </button>
         ))}
       </nav>
@@ -55,7 +57,7 @@ export default function Sidebar() {
         <AccountPanel />
 
         <div style={{ borderTop: '1px solid var(--color-divider)', paddingTop: 'var(--space-3)' }}>
-          <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .6, marginBottom: '4px' }}>
+          <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .65, marginBottom: '4px' }}>
             Exam level
           </div>
           {Object.keys(SYLLABUS).map(lv => (
@@ -79,7 +81,7 @@ export default function Sidebar() {
           style={{ justifyContent: 'space-between' }}
         >
           <span>{state.theme === 'dark' ? 'Dark' : 'Light'}</span>
-          <span style={{ opacity: .6, fontSize: '12px' }}>theme</span>
+          <span style={{ opacity: .65, fontSize: '12px' }}>theme</span>
         </button>
 
         <ExportPanel />
@@ -93,13 +95,13 @@ export default function Sidebar() {
             onClick={actions.resetProgress}
             style={{
               justifyContent: 'center',
-              borderColor: state.confirmReset ? '#b3392f' : 'var(--color-divider)',
-              color: state.confirmReset ? '#b3392f' : 'var(--color-text)'
+              borderColor: state.confirmReset ? 'var(--danger-ink)' : 'var(--color-divider)',
+              color: state.confirmReset ? 'var(--danger-ink)' : 'var(--color-text)'
             }}
           >
             {state.confirmReset ? 'Tap again to confirm' : 'Reset my progress'}
           </button>
-          <p style={{ fontSize: '11px', opacity: .6, margin: 'var(--space-2) 0 0', lineHeight: 1.4 }}>
+          <p style={{ fontSize: '11px', opacity: .65, margin: 'var(--space-2) 0 0', lineHeight: 1.4 }}>
             {state.confirmReset
               ? 'Clears every logged session, streak, test attempt, card schedule and mastery mark. Syllabus, tasks and notes stay.'
               : 'Start from zero — clears the sample study data.'}

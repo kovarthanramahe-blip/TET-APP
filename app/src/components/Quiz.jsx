@@ -82,7 +82,7 @@ function QuizSetup({ s, actions }) {
               ))}
             </tbody>
           </table>
-          <p style={{ fontSize: '12px', opacity: .6, marginTop: 'var(--space-3)' }}>{attemptSummary}</p>
+          <p style={{ fontSize: '12px', opacity: .65, marginTop: 'var(--space-3)' }}>{attemptSummary}</p>
         </div>
       </div>
     </section>
@@ -106,9 +106,9 @@ function QuizActive({ s, actions }) {
       style: {
         display: 'flex', gap: '10px', alignItems: 'center', width: '100%', cursor: locked ? 'default' : 'pointer',
         padding: '11px 14px', fontFamily: 'var(--font-body)', fontSize: '15px',
-        background: right ? 'color-mix(in srgb, #3f7d4e 14%, transparent)' : wrong ? 'color-mix(in srgb, #b3392f 12%, transparent)' : picked ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)' : 'transparent',
+        background: right ? 'color-mix(in srgb, var(--success-ink) 14%, transparent)' : wrong ? 'color-mix(in srgb, var(--danger-ink) 12%, transparent)' : picked ? 'color-mix(in srgb, var(--color-accent) 12%, transparent)' : 'transparent',
         color: 'var(--color-text)',
-        border: '1px solid ' + (right ? '#3f7d4e' : wrong ? '#b3392f' : picked ? 'var(--color-accent)' : 'var(--color-divider)'),
+        border: '1px solid ' + (right ? 'var(--success-ink)' : wrong ? 'var(--danger-ink)' : picked ? 'var(--color-accent)' : 'var(--color-divider)'),
         borderRadius: 'var(--radius-md)'
       },
       pick: () => { if (locked) return; actions.pickOption(s.qIndex, i, isMock); }
@@ -139,7 +139,7 @@ function QuizActive({ s, actions }) {
           </div>
           <div style={{
             fontFamily: 'var(--font-heading)', fontSize: '22px', fontFeatureSettings: "'tnum'",
-            color: isMock && s.mockLeft < 60 ? '#b3392f' : 'var(--color-text)',
+            color: isMock && s.mockLeft < 60 ? 'var(--danger-ink)' : 'var(--color-text)',
             animation: isMock && s.mockLeft < 60 ? 'htetPulse 1.2s infinite' : 'none'
           }}>
             {isMock ? mm(s.mockLeft) : 'untimed'}
@@ -157,7 +157,7 @@ function QuizActive({ s, actions }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             {qOptions.map(o => (
               <button key={o.key} type="button" onClick={o.pick} style={o.style}>
-                <span style={{ fontFeatureSettings: "'tnum'", opacity: .6, minWidth: '20px' }}>{o.key}</span>
+                <span style={{ fontFeatureSettings: "'tnum'", opacity: .65, minWidth: '20px' }}>{o.key}</span>
                 <span style={{ flex: 1, textAlign: 'left' }}>{o.text}</span>
                 <span style={{ fontSize: '12px', color: 'var(--accent-ink)' }}>{o.flag}</span>
               </button>
@@ -177,7 +177,7 @@ function QuizActive({ s, actions }) {
         {showFb && (
           <div style={{
             marginTop: 'var(--space-4)', padding: 'var(--space-3) var(--space-4)',
-            borderLeft: '2px solid ' + (feedbackOk ? '#3f7d4e' : '#b3392f'),
+            borderLeft: '2px solid ' + (feedbackOk ? 'var(--success-ink)' : 'var(--danger-ink)'),
             background: 'color-mix(in srgb, var(--color-text) 4%, transparent)'
           }}>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '17px' }}>{feedbackOk ? 'Correct' : 'Not quite'}</div>
@@ -188,7 +188,7 @@ function QuizActive({ s, actions }) {
         <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-6)', flexWrap: 'wrap' }}>
           <button type="button" className="btn btn-primary" onClick={nextQuestion}>{nextLabel}</button>
           <button type="button" className="btn btn-secondary" onClick={actions.abortQuiz}>Exit test</button>
-          <span style={{ fontSize: '12px', opacity: .6, alignSelf: 'center' }}>{lockNote}</span>
+          <span style={{ fontSize: '12px', opacity: .65, alignSelf: 'center' }}>{lockNote}</span>
         </div>
       </div>
     </section>
@@ -219,7 +219,7 @@ function QuizResult({ s, actions }) {
     return {
       q: (i + 1) + '. ' + qq.q, yours: 'Your answer: ' + yourText,
       right: ok ? '✓ ' + qq.explain : '→ ' + ((qq.type === 'mcq' || qq.type === 'tf') ? qq.options[qq.answer] : qq.answer) + ' — ' + qq.explain,
-      style: { padding: 'var(--space-3)', borderLeft: '2px solid ' + (ok ? '#3f7d4e' : '#b3392f'), background: 'color-mix(in srgb, var(--color-text) 3%, transparent)' }
+      style: { padding: 'var(--space-3)', borderLeft: '2px solid ' + (ok ? 'var(--success-ink)' : 'var(--danger-ink)'), background: 'color-mix(in srgb, var(--color-text) 3%, transparent)' }
     };
   });
 
@@ -234,7 +234,7 @@ function QuizResult({ s, actions }) {
       <div style={{ maxWidth: '820px', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
         <div style={{ display: 'flex', gap: 'var(--space-8)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div>
-            <div style={{ fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', opacity: .6 }}>Score</div>
+            <div style={{ fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', opacity: .65 }}>Score</div>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '72px', lineHeight: 1, fontWeight: 400, fontFeatureSettings: "'tnum'" }}>
               {(lastAttempt ? lastAttempt.pct : 0) + '%'}
             </div>

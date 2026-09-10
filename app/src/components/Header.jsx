@@ -15,10 +15,10 @@ function SearchResults({ results, onOpenNote, onOpenView }) {
       position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 20,
       padding: 'var(--space-3)', maxHeight: '360px', overflowY: 'auto'
     }}>
-      {groups.length === 0 && <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>No matches.</p>}
+      {groups.length === 0 && <p style={{ fontSize: '13px', opacity: .65, margin: 0 }}>No matches.</p>}
       {groups.map(g => (
         <div key={g.key} style={{ marginBottom: 'var(--space-2)' }}>
-          <div style={{ fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .55, margin: '4px 0' }}>{g.label}</div>
+          <div style={{ fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .65, margin: '4px 0' }}>{g.label}</div>
           {g.items.map((item, i) => {
             const r = g.render(item);
             return (
@@ -27,7 +27,7 @@ function SearchResults({ results, onOpenNote, onOpenView }) {
                 background: 'transparent', border: 'none', borderRadius: 'var(--radius-sm)', color: 'var(--color-text)'
               }}>
                 <div style={{ fontSize: '13px' }}>{r.title || 'Untitled'}</div>
-                {r.sub && <div style={{ fontSize: '11px', opacity: .6 }}>{r.sub}</div>}
+                {r.sub && <div style={{ fontSize: '11px', opacity: .65 }}>{r.sub}</div>}
               </button>
             );
           })}
@@ -78,7 +78,7 @@ export default function Header() {
       paddingBottom: 'var(--space-3)', marginBottom: 'var(--space-6)'
     }}>
       <div>
-        <div style={{ fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', opacity: .6 }}>
+        <div style={{ fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', opacity: .65 }}>
           {cur[2]}
         </div>
         <h2 style={{ margin: '2px 0 0' }}>{viewTitle}</h2>
@@ -103,11 +103,11 @@ export default function Header() {
       <div style={{ display: 'flex', gap: 'var(--space-6)', textAlign: 'right', fontFeatureSettings: "'tnum'" }}>
         <div>
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px' }}>{streak}</div>
-          <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .6 }}>day streak</div>
+          <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .65 }}>day streak</div>
         </div>
         <div>
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px' }}>{totalHours}</div>
-          <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .6 }}>hours logged</div>
+          <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .65 }}>hours logged</div>
         </div>
       </div>
     </header>

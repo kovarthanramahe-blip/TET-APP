@@ -33,17 +33,17 @@ export default function AccountPanel() {
 
   return (
     <div style={{ borderTop: '1px solid var(--color-divider)', paddingTop: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .6 }}>Account</div>
+      <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .65 }}>Account</div>
 
       {!configured && (
-        <p style={{ fontSize: '11px', opacity: .6, margin: 0, lineHeight: 1.4 }}>
+        <p style={{ fontSize: '11px', opacity: .65, margin: 0, lineHeight: 1.4 }}>
           Sign-in isn't configured yet. Add <code>VITE_SUPABASE_URL</code> and{' '}
           <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> to <code>app/.env</code> to enable it.
         </p>
       )}
 
       {configured && loading && (
-        <p style={{ fontSize: '12px', opacity: .6, margin: 0 }}>Checking session…</p>
+        <p style={{ fontSize: '12px', opacity: .65, margin: 0 }}>Checking session…</p>
       )}
 
       {configured && !loading && user && (
@@ -56,7 +56,7 @@ export default function AccountPanel() {
               <button
                 type="button"
                 className="btn btn-ghost"
-                style={{ fontSize: '11px', color: '#b3392f', padding: 0 }}
+                style={{ fontSize: '11px', color: 'var(--danger-ink)', padding: 0 }}
                 onClick={() => setConfirmingDelete(true)}
               >
                 Delete my account
@@ -64,7 +64,7 @@ export default function AccountPanel() {
             )}
             {confirmingDelete && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }} role="alert">
-                <p style={{ fontSize: '11px', color: '#b3392f', margin: 0, lineHeight: 1.4 }}>
+                <p style={{ fontSize: '11px', color: 'var(--danger-ink)', margin: 0, lineHeight: 1.4 }}>
                   This permanently deletes your account and every task, note, session, test attempt, flashcard, and setting stored for it. This cannot be undone.
                 </p>
                 <input
@@ -75,15 +75,21 @@ export default function AccountPanel() {
                   value={confirmText}
                   onChange={e => setConfirmText(e.target.value)}
                 />
-                {deleteError && <p style={{ fontSize: '11px', color: '#b3392f', margin: 0 }}>{deleteError}</p>}
+                {deleteError && <p style={{ fontSize: '11px', color: 'var(--danger-ink)', margin: 0 }}>{deleteError}</p>}
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button type="button" className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={cancelDelete} disabled={deleting}>
                     Cancel
                   </button>
+                  {/* .btn-primary's default text color is --accent-ink (gold/tan,
+                      tuned for a neutral background) -- against this button's
+                      own solid red fill it read at ~1:1 in light mode, an
+                      accidental near-invisible label caught during the Phase
+                      25 contrast audit. Explicit white overrides it correctly
+                      for this specific solid-fill background. */}
                   <button
                     type="button"
                     className="btn btn-primary"
-                    style={{ fontSize: '12px', background: '#b3392f', borderColor: '#b3392f' }}
+                    style={{ fontSize: '12px', background: '#b3392f', borderColor: '#b3392f', color: '#fff' }}
                     disabled={confirmText !== 'DELETE' || deleting}
                     onClick={handleDelete}
                   >

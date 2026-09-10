@@ -107,7 +107,7 @@ export default function Flashcards() {
             {srsStats.map(st => (
               <div key={st.label}>
                 <div style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontFeatureSettings: "'tnum'" }}>{st.value}</div>
-                <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .6 }}>{st.label}</div>
+                <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .65 }}>{st.label}</div>
               </div>
             ))}
           </div>
@@ -170,7 +170,7 @@ export default function Flashcards() {
           </>
         )}
         {!currentCustomCard && (
-          <p style={{ fontSize: '13px', opacity: .6, margin: '0 0 var(--space-4)' }}>
+          <p style={{ fontSize: '13px', opacity: .65, margin: '0 0 var(--space-4)' }}>
             {s.customCards.length === 0 ? 'No custom flashcards yet — add one below.' : 'Nothing of yours is due right now.'}
           </p>
         )}
@@ -220,7 +220,7 @@ export default function Flashcards() {
       <div>
         <h4>Manage your flashcards</h4>
         <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
-        {s.customCards.length === 0 && <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>Cards you add appear here.</p>}
+        {s.customCards.length === 0 && <p style={{ fontSize: '13px', opacity: .65, margin: 0 }}>Cards you add appear here.</p>}
         {s.customCards.map(c => (
           <div key={c.id} style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-divider)' }}>
             <input className="input" style={{ flex: '1 1 140px' }} type="text" aria-label="Front" value={c.front} onChange={e => actions.updateCustomCard(c.id, { front: e.target.value })} />

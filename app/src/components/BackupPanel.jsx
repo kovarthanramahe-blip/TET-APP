@@ -59,7 +59,7 @@ export default function BackupPanel() {
 
   return (
     <div style={{ borderTop: '1px solid var(--color-divider)', paddingTop: 'var(--space-3)' }}>
-      <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .6, marginBottom: '6px' }}>
+      <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .65, marginBottom: '6px' }}>
         Backup &amp; restore
       </div>
 
@@ -73,7 +73,7 @@ export default function BackupPanel() {
       </button>
 
       {cloudActive && (
-        <p style={{ fontSize: '11px', opacity: .6, margin: 'var(--space-2) 0 0', lineHeight: 1.4 }}>
+        <p style={{ fontSize: '11px', opacity: .65, margin: 'var(--space-2) 0 0', lineHeight: 1.4 }}>
           Your data already lives in your account. Restoring a backup file is only available when you're not signed in.
         </p>
       )}
@@ -98,17 +98,20 @@ export default function BackupPanel() {
 
       {confirming && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }} role="alert">
-          <p style={{ fontSize: '11px', color: '#b3392f', margin: 0, lineHeight: 1.4 }}>
+          <p style={{ fontSize: '11px', color: 'var(--danger-ink)', margin: 0, lineHeight: 1.4 }}>
             This replaces everything currently on this device — sessions, tasks, notes, confidence marks, flashcards, and settings — with the contents of the backup file. This cannot be undone.
           </p>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button type="button" className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={cancelRestore}>
               Cancel
             </button>
+            {/* Explicit white text: see the matching comment in
+                AccountPanel.jsx's "Permanently delete" button -- same
+                .btn-primary-default-color-on-solid-red-fill issue. */}
             <button
               type="button"
               className="btn btn-primary"
-              style={{ fontSize: '12px', background: '#b3392f', borderColor: '#b3392f' }}
+              style={{ fontSize: '12px', background: '#b3392f', borderColor: '#b3392f', color: '#fff' }}
               onClick={confirmRestore}
             >
               Replace my data
@@ -117,7 +120,7 @@ export default function BackupPanel() {
         </div>
       )}
 
-      {error && <p role="alert" style={{ fontSize: '11px', color: '#b3392f', margin: 'var(--space-2) 0 0' }}>{error}</p>}
+      {error && <p role="alert" style={{ fontSize: '11px', color: 'var(--danger-ink)', margin: 'var(--space-2) 0 0' }}>{error}</p>}
       {restored && <p role="status" style={{ fontSize: '11px', opacity: .7, margin: 'var(--space-2) 0 0' }}>Backup restored.</p>}
     </div>
   );

@@ -14,7 +14,7 @@ export default function ExportPanel() {
 
   return (
     <div style={{ borderTop: '1px solid var(--color-divider)', paddingTop: 'var(--space-3)' }}>
-      <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .6, marginBottom: '6px' }}>
+      <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .65, marginBottom: '6px' }}>
         Export data
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>

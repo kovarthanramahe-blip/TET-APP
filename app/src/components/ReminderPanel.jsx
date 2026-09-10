@@ -32,15 +32,15 @@ export default function ReminderPanel() {
         style={{ justifyContent: 'space-between', width: '100%' }}
       >
         <span>Study reminders</span>
-        <span style={{ opacity: .6, fontSize: '12px' }}>{state.remindersEnabled ? 'On' : 'Off'}</span>
+        <span style={{ opacity: .65, fontSize: '12px' }}>{state.remindersEnabled ? 'On' : 'Off'}</span>
       </button>
       {denied && (
-        <p style={{ fontSize: '11px', opacity: .6, margin: 'var(--space-2) 0 0', lineHeight: 1.4 }}>
+        <p style={{ fontSize: '11px', opacity: .65, margin: 'var(--space-2) 0 0', lineHeight: 1.4 }}>
           Notifications are blocked for this site — allow them in your browser settings, then try again.
         </p>
       )}
       {!denied && (
-        <p style={{ fontSize: '11px', opacity: .6, margin: 'var(--space-2) 0 0', lineHeight: 1.4 }}>
+        <p style={{ fontSize: '11px', opacity: .65, margin: 'var(--space-2) 0 0', lineHeight: 1.4 }}>
           One notification a day for an unmet goal, due tasks, or flashcards ready — only while this tab is open.
         </p>
       )}

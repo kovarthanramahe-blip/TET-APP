@@ -29,9 +29,13 @@ export default function Badges() {
       name: b.name, desc: b.desc, state: unlocked ? 'Unlocked' : 'Locked',
       progress: Math.min(v, b.target) + ' / ' + b.target,
       style: {
+        // Phase 25: this card's own opacity used to drop to 0.75 when
+        // locked -- compounding with the "Locked"/progress text's OWN
+        // reduced opacity inside it (effectively ~0.75 * 0.65), fading
+        // both well past WCAG AA. The border/background difference above
+        // already signals locked-vs-unlocked; that's enough on its own.
         padding: 'var(--space-4)', border: '1px solid ' + (unlocked ? 'var(--color-accent)' : 'var(--color-divider)'),
-        borderRadius: 'var(--radius-md)', background: unlocked ? 'color-mix(in srgb, var(--color-accent) 8%, transparent)' : 'transparent',
-        opacity: unlocked ? 1 : 0.75
+        borderRadius: 'var(--radius-md)', background: unlocked ? 'color-mix(in srgb, var(--color-accent) 8%, transparent)' : 'transparent'
       },
       fillStyle: { width: Math.max(1, pct) + '%', height: '100%', background: unlocked ? 'var(--color-accent)' : 'var(--color-neutral-500)' }
     };
@@ -42,7 +46,7 @@ export default function Badges() {
       <div className="card" style={{ padding: 'var(--space-6)', display: 'flex', gap: 'var(--space-8)', flexWrap: 'wrap', alignItems: 'center' }}>
         <div>
           <div style={{ fontFamily: 'var(--font-heading)', fontSize: '56px', lineHeight: 1, fontFeatureSettings: "'tnum'" }}>{streak}</div>
-          <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .6 }}>consecutive days</div>
+          <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .65 }}>consecutive days</div>
         </div>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', flex: '1 1 260px' }}>
           {streakDots.map((d, i) => <div key={i} title={d.title} style={d.style}></div>)}
@@ -57,7 +61,7 @@ export default function Badges() {
             <div style={{ height: '3px', background: 'var(--color-divider)', marginTop: 'var(--space-3)' }}>
               <div style={b.fillStyle}></div>
             </div>
-            <div style={{ fontSize: '11px', opacity: .6, marginTop: '4px', fontFeatureSettings: "'tnum'" }}>{b.progress}</div>
+            <div style={{ fontSize: '11px', opacity: .65, marginTop: '4px', fontFeatureSettings: "'tnum'" }}>{b.progress}</div>
           </div>
         ))}
       </div>

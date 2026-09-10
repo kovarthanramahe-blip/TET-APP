@@ -51,8 +51,8 @@ export default function MigrationBanner() {
       // status === 'error' -- shown clearly and persistently until the user
       // dismisses it or retries; never swallowed silently.
       migrationBanner = (
-        <div style={{ ...base, bottom, borderColor: '#b3392f' }} role="alert">
-          <span style={{ color: '#b3392f' }}>Couldn't save your data to your account: {error}</span>
+        <div style={{ ...base, bottom, borderColor: 'var(--danger-ink)' }} role="alert">
+          <span style={{ color: 'var(--danger-ink)' }}>Couldn't save your data to your account: {error}</span>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-secondary" style={{ fontSize: '12px' }} onClick={() => setDismissed(true)}>
               Dismiss
@@ -70,8 +70,8 @@ export default function MigrationBanner() {
   // in its own spot at the bottom.
   const cloudErrorBottom = showMigration ? 'calc(var(--space-4) + 76px)' : 'var(--space-4)';
   const cloudErrorBanner = showCloudError ? (
-    <div style={{ ...base, bottom: cloudErrorBottom, borderColor: '#b3392f' }} role="alert">
-      <span style={{ color: '#b3392f' }}>Couldn't sync with your account: {cloudError}</span>
+    <div style={{ ...base, bottom: cloudErrorBottom, borderColor: 'var(--danger-ink)' }} role="alert">
+      <span style={{ color: 'var(--danger-ink)' }}>Couldn't sync with your account: {cloudError}</span>
       <button type="button" className="btn btn-secondary" style={{ alignSelf: 'flex-end', fontSize: '12px' }} onClick={clearCloudError}>
         Dismiss
       </button>

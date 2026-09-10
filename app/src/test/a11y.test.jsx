@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { AppProvider } from '../AppContext.jsx';
@@ -57,6 +57,81 @@ describe('accessibility: default view states', () => {
       expect(results).toHaveNoViolations();
     });
   }
+});
+
+// Phase 25: jsdom doesn't do real rendering/paint, so axe's color-contrast
+// rule is unreliable there -- it runs, but frequently reports a color pair
+// as "incomplete" rather than a genuine pass or fail, and jest-axe's
+// toHaveNoViolations() only looks at violations. That's exactly how this
+// phase's real bugs (a systemic opacity value, and a solid-red button with
+// unreadable text) went uncaught by Phase 24's suite despite it already
+// covering these same components/states. A real browser + axe audit (see
+// the Phase 25 write-up) is what actually found and verified the fixes;
+// what's practical to keep as a permanent, deterministic regression guard
+// here is a plain style assertion on the exact bug that was found, plus
+// re-running the structural (non-color) checks against the dark theme too,
+// since nothing before this phase ever rendered dark theme at all.
+describe('accessibility: dark theme default view states (structural checks only -- see note above on color-contrast)', () => {
+  const darkCases = [
+    ['Dashboard', () => <Dashboard />],
+    ['Syllabus', () => <Syllabus />],
+    ['Tasks', () => <TasksView />],
+    ['Notes', () => <Notes />]
+  ];
+
+  beforeEach(() => {
+    document.documentElement.dataset.theme = 'dark';
+  });
+
+  afterEach(() => {
+    delete document.documentElement.dataset.theme;
+  });
+
+  for (const [name, Component] of darkCases) {
+    it(`${name} in dark theme has no axe violations`, async () => {
+      const { container } = withProvider(<Component />);
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+  }
+});
+
+describe('accessibility: destructive buttons keep an explicit readable text color', () => {
+  // Deterministic regression guard for the specific bug this phase found:
+  // .btn-primary's default text color is --accent-ink (tuned for a neutral
+  // background); these two buttons override the background to solid red,
+  // and without an explicit text color override too, the text nearly
+  // vanishes (~1:1 in light mode) -- axe couldn't reliably catch this in
+  // jsdom, so this asserts the fix directly instead of relying on
+  // rendering-dependent contrast computation.
+  it('AccountPanel\'s "Permanently delete" button sets explicit white text', async () => {
+    vi.doMock('../hooks/useAuth.js', () => ({
+      useAuth: () => ({
+        configured: true, loading: false, user: { email: 'test@example.com' }, notice: '',
+        signInWithGoogle: () => {}, sendMagicLink: () => {}, signOut: () => {}
+      })
+    }));
+    vi.resetModules();
+    const { default: AccountPanel } = await import('../components/AccountPanel.jsx');
+    const { fireEvent } = await import('@testing-library/react');
+    const { getByText } = withProvider(<AccountPanel />);
+    fireEvent.click(getByText('Delete my account'));
+    const button = getByText('Permanently delete');
+    expect(button.style.color).toBe('rgb(255, 255, 255)');
+    expect(button.style.background).toBe('rgb(179, 57, 47)');
+  });
+
+  it('BackupPanel\'s "Replace my data" button sets explicit white text', async () => {
+    const { container, getByText } = withProvider(<BackupPanel />);
+    const file = new File([JSON.stringify({ format: 'htet-prep-backup', version: 1, state: {} })], 'b.json', { type: 'application/json' });
+    const input = container.querySelector('input[type="file"]');
+    const { fireEvent, waitFor } = await import('@testing-library/react');
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => getByText('Replace my data'));
+    const button = getByText('Replace my data');
+    expect(button.style.color).toBe('rgb(255, 255, 255)');
+    expect(button.style.background).toBe('rgb(179, 57, 47)');
+  });
 });
 
 describe('accessibility: destructive-action confirm states', () => {

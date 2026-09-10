@@ -42,7 +42,7 @@ export default function TasksView() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-        {taskList.length === 0 && <p style={{ opacity: .6, margin: 0 }}>Nothing here.</p>}
+        {taskList.length === 0 && <p style={{ opacity: .65, margin: 0 }}>Nothing here.</p>}
         {taskList.map(({ t, vm }) => (
           <div key={t.id} className="card" style={{ padding: 'var(--space-4)', display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
             <button type="button" onClick={() => actions.toggleTask(t.id)} role="checkbox" aria-checked={vm.done} aria-label={vm.title} style={checkbox(vm.done)}>{vm.mark}</button>
@@ -61,8 +61,8 @@ export default function TasksView() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
               <span style={{
                 ...chip(vm.priority === 'High', true),
-                color: vm.priority === 'High' ? '#a03027' : 'var(--color-text)',
-                borderColor: vm.priority === 'High' ? '#a03027' : 'var(--color-divider)',
+                color: vm.priority === 'High' ? 'var(--danger-ink)' : 'var(--color-text)',
+                borderColor: vm.priority === 'High' ? 'var(--danger-ink)' : 'var(--color-divider)',
                 cursor: 'default'
               }}>{vm.priority}</span>
               <button type="button" className="btn btn-ghost" onClick={() => actions.removeTask(t.id)} style={{ fontSize: '12px' }}>Remove</button>

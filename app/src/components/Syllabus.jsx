@@ -60,12 +60,12 @@ export default function Syllabus() {
                       <div style={{ fontSize: '14px' }}>
                         {t[0]}
                         {customTopic && (
-                          <span style={{ fontSize: '10px', letterSpacing: '.08em', textTransform: 'uppercase', opacity: .55, marginLeft: '6px' }}>
+                          <span style={{ fontSize: '10px', letterSpacing: '.08em', textTransform: 'uppercase', opacity: .65, marginLeft: '6px' }}>
                             Custom
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: '12px', opacity: .6 }}>{t[1]}</div>
+                      <div style={{ fontSize: '12px', opacity: .65 }}>{t[1]}</div>
                     </div>
                     {topicNotes.length > 0 && (
                       <button type="button" onClick={openNotes} style={{
@@ -86,7 +86,7 @@ export default function Syllabus() {
                         type="button"
                         className="btn btn-ghost"
                         aria-label={'Delete custom topic ' + t[0]}
-                        style={{ fontSize: '11px', color: '#b3392f', padding: '2px 4px' }}
+                        style={{ fontSize: '11px', color: 'var(--danger-ink)', padding: '2px 4px' }}
                         onClick={() => actions.deleteCustomTopic(customTopic.id)}
                       >
                         Delete
@@ -103,7 +103,7 @@ export default function Syllabus() {
       <div className="card" style={{ padding: 'var(--space-4) var(--space-6)' }}>
         <h4 style={{ margin: 0 }}>Add a custom topic</h4>
         <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
-        <p style={{ fontSize: '12px', opacity: .6, margin: '0 0 var(--space-3)' }}>
+        <p style={{ fontSize: '12px', opacity: .65, margin: '0 0 var(--space-3)' }}>
           Added to {s.level}. Pick an existing module to fold it in, or type a new one to start a custom module.
         </p>
         <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'flex-end' }}>

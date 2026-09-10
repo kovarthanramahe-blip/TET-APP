@@ -152,7 +152,7 @@ export default function Dashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 'var(--space-4)' }}>
         {stats.map(st => (
           <div key={st.label} className="card" style={{ padding: 'var(--space-4)' }}>
-            <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .6 }}>{st.label}</div>
+            <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .65 }}>{st.label}</div>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '38px', lineHeight: 1.1, fontWeight: 400, fontFeatureSettings: "'tnum'", marginTop: '4px' }}>{st.value}</div>
             <div style={{ fontSize: '12px', opacity: .65 }}>{st.sub}</div>
           </div>
@@ -179,7 +179,7 @@ export default function Dashboard() {
         </div>
         <hr className="hr" style={{ margin: 'var(--space-3) 0' }} />
         {examDays === null && (
-          <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>Set your exam date above to see a countdown here and in the sidebar.</p>
+          <p style={{ fontSize: '13px', opacity: .65, margin: 0 }}>Set your exam date above to see a countdown here and in the sidebar.</p>
         )}
         {examDays !== null && (
           <p style={{ fontSize: '14px', margin: '0 0 var(--space-4)' }}>
@@ -194,7 +194,7 @@ export default function Dashboard() {
               <span style={{ fontFeatureSettings: "'tnum'", opacity: .7 }}>{todayGoal.done} / {todayGoal.goal} min</span>
             </div>
             <div style={{ height: '5px', background: 'var(--color-divider)', borderRadius: '3px', marginTop: '6px' }}>
-              <div style={{ width: todayGoal.pct + '%', height: '100%', borderRadius: '3px', background: todayGoal.pct >= 100 ? '#3f7d4e' : 'var(--color-accent)' }}></div>
+              <div style={{ width: todayGoal.pct + '%', height: '100%', borderRadius: '3px', background: todayGoal.pct >= 100 ? 'var(--success-ink)' : 'var(--color-accent)' }}></div>
             </div>
           </div>
           <div>
@@ -203,7 +203,7 @@ export default function Dashboard() {
               <span style={{ fontFeatureSettings: "'tnum'", opacity: .7 }}>{weekGoal.avg} / {weekGoal.goal} min</span>
             </div>
             <div style={{ height: '5px', background: 'var(--color-divider)', borderRadius: '3px', marginTop: '6px' }}>
-              <div style={{ width: weekGoal.pct + '%', height: '100%', borderRadius: '3px', background: weekGoal.pct >= 100 ? '#3f7d4e' : 'var(--color-accent)' }}></div>
+              <div style={{ width: weekGoal.pct + '%', height: '100%', borderRadius: '3px', background: weekGoal.pct >= 100 ? 'var(--success-ink)' : 'var(--color-accent)' }}></div>
             </div>
           </div>
         </div>
@@ -212,7 +212,7 @@ export default function Dashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 'var(--space-4)' }}>
         {kpis.map(st => (
           <div key={st.label} className="card" style={{ padding: 'var(--space-4)' }}>
-            <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .6 }}>{st.label}</div>
+            <div style={{ fontSize: '11px', letterSpacing: '.12em', textTransform: 'uppercase', opacity: .65 }}>{st.label}</div>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '30px', lineHeight: 1.1, fontWeight: 400, fontFeatureSettings: "'tnum'", marginTop: '4px' }}>{st.value}</div>
             <div style={{ fontSize: '12px', opacity: .65 }}>{st.sub}</div>
           </div>
@@ -235,7 +235,7 @@ export default function Dashboard() {
               <div key={i} title={c.title} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: '6px', height: '100%' }}>
                 {trendDays === 7 && <div style={{ fontSize: '11px', fontFeatureSettings: "'tnum'", opacity: .7 }}>{c.minsLabel}</div>}
                 <div style={c.barStyle}></div>
-                {trendDays === 7 && <div style={{ fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase', opacity: .6 }}>{c.dayLabel}</div>}
+                {trendDays === 7 && <div style={{ fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase', opacity: .65 }}>{c.dayLabel}</div>}
               </div>
             ))}
           </div>
@@ -263,7 +263,7 @@ export default function Dashboard() {
         <div>
           <h4>Today's agenda</h4>
           <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
-          {agenda.length === 0 && <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>Nothing open — add a task to see it here.</p>}
+          {agenda.length === 0 && <p style={{ fontSize: '13px', opacity: .65, margin: 0 }}>Nothing open — add a task to see it here.</p>}
           {agenda.map(({ t, vm }) => (
             <div key={t.id} style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start', padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-divider)' }}>
               <button type="button" onClick={() => actions.toggleTask(t.id)} role="checkbox" aria-checked={vm.done} aria-label={vm.title} style={checkbox(vm.done)}>{vm.mark}</button>
@@ -273,8 +273,8 @@ export default function Dashboard() {
               </div>
               <span className="tag tag-outline" style={{
                 ...chip(vm.priority === 'High', true),
-                color: vm.priority === 'High' ? '#a03027' : 'var(--color-text)',
-                borderColor: vm.priority === 'High' ? '#a03027' : 'var(--color-divider)',
+                color: vm.priority === 'High' ? 'var(--danger-ink)' : 'var(--color-text)',
+                borderColor: vm.priority === 'High' ? 'var(--danger-ink)' : 'var(--color-divider)',
                 cursor: 'default'
               }}>{vm.priority}</span>
             </div>
@@ -301,7 +301,7 @@ export default function Dashboard() {
         <h4>Time by module</h4>
         <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
         {timeByModule.every(m => m.name === 'Unlinked') && (
-          <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>
+          <p style={{ fontSize: '13px', opacity: .65, margin: 0 }}>
             No sessions linked to a topic yet — pick one under "Currently studying" on the Study sessions page.
           </p>
         )}
@@ -323,11 +323,11 @@ export default function Dashboard() {
           <h4>Time by topic</h4>
           <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
           {topTopics.length === 0 && (
-            <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>No topic-linked sessions yet.</p>
+            <p style={{ fontSize: '13px', opacity: .65, margin: 0 }}>No topic-linked sessions yet.</p>
           )}
           {topTopics.map(t => (
             <div key={t.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', padding: 'var(--space-2) 0', fontSize: '13px', borderBottom: '1px solid var(--color-divider)' }}>
-              <span>{t.topic}<span style={{ opacity: .55 }}> · {t.module}</span></span>
+              <span>{t.topic}<span style={{ opacity: .65 }}> · {t.module}</span></span>
               <span style={{ fontFeatureSettings: "'tnum'", opacity: .7, flex: 'none' }}>{t.label}</span>
             </div>
           ))}
@@ -345,7 +345,7 @@ export default function Dashboard() {
                   borderTop: '2px solid ' + (w.daysStudied ? 'var(--color-accent)' : 'var(--color-divider)'),
                   borderRadius: '2px 2px 0 0'
                 }}></div>
-                <div style={{ fontSize: '10px', letterSpacing: '.04em', textTransform: 'uppercase', opacity: .6 }}>{w.label}</div>
+                <div style={{ fontSize: '10px', letterSpacing: '.04em', textTransform: 'uppercase', opacity: .65 }}>{w.label}</div>
               </div>
             ))}
           </div>
@@ -356,7 +356,7 @@ export default function Dashboard() {
         <div>
           <h4>Quiz performance trend</h4>
           <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
-          {quizSeries.length === 0 && <p style={{ fontSize: '13px', opacity: .6, margin: 0 }}>No test attempts yet.</p>}
+          {quizSeries.length === 0 && <p style={{ fontSize: '13px', opacity: .65, margin: 0 }}>No test attempts yet.</p>}
           {quizSeries.length > 0 && (
             <>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--space-2)', height: '110px' }}>
@@ -364,8 +364,8 @@ export default function Dashboard() {
                   <div key={i} title={a.when + ' · ' + a.mode + ' · ' + a.pct + '%'} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
                     <div style={{
                       width: '100%', height: Math.max(2, a.pct) + '%',
-                      background: a.pct >= 60 ? 'color-mix(in srgb, var(--color-accent) 28%, transparent)' : 'color-mix(in srgb, #b3392f 22%, transparent)',
-                      borderTop: '2px solid ' + (a.pct >= 60 ? 'var(--color-accent)' : '#b3392f'),
+                      background: a.pct >= 60 ? 'color-mix(in srgb, var(--color-accent) 28%, transparent)' : 'color-mix(in srgb, var(--danger-ink) 22%, transparent)',
+                      borderTop: '2px solid ' + (a.pct >= 60 ? 'var(--color-accent)' : 'var(--danger-ink)'),
                       borderRadius: '2px 2px 0 0'
                     }}></div>
                   </div>
@@ -380,12 +380,12 @@ export default function Dashboard() {
         <div>
           <h4>Strongest / weakest areas</h4>
           <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
-          <p style={{ fontSize: '12px', opacity: .6, margin: '0 0 var(--space-3)' }}>
+          <p style={{ fontSize: '12px', opacity: .65, margin: '0 0 var(--space-3)' }}>
             Ranked by syllabus mastery; quiz accuracy shown where you have test attempts for that part of the paper.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 'var(--space-4)' }}>
             <div>
-              <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .6, marginBottom: '6px' }}>Needs the most work</div>
+              <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .65, marginBottom: '6px' }}>Needs the most work</div>
               {weakestAreas.map(m => (
                 <div key={m.name} style={{ padding: 'var(--space-1) 0' }}>
                   <div style={{ fontSize: '13px' }}>{m.name}</div>
@@ -396,7 +396,7 @@ export default function Dashboard() {
               ))}
             </div>
             <div>
-              <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .6, marginBottom: '6px' }}>Strongest</div>
+              <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .65, marginBottom: '6px' }}>Strongest</div>
               {strongestAreas.map(m => (
                 <div key={m.name} style={{ padding: 'var(--space-1) 0' }}>
                   <div style={{ fontSize: '13px' }}>{m.name}</div>
@@ -415,13 +415,13 @@ export default function Dashboard() {
         <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 'var(--space-4)' }}>
           <div>
-            <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .6 }}>Seeded deck</div>
+            <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .65 }}>Seeded deck</div>
             <div style={{ fontSize: '13px', marginTop: '4px' }}>{seededProgress.reviewed}/{seededProgress.total} reviewed at least once</div>
             <div style={{ fontSize: '12px', opacity: .65 }}>{seededProgress.dueNow} due now · avg ease {seededProgress.avgEase.toFixed(2)}</div>
           </div>
           <div>
-            <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .6 }}>Your flashcards</div>
-            {customProgress.total === 0 && <div style={{ fontSize: '13px', marginTop: '4px', opacity: .6 }}>None yet</div>}
+            <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .65 }}>Your flashcards</div>
+            {customProgress.total === 0 && <div style={{ fontSize: '13px', marginTop: '4px', opacity: .65 }}>None yet</div>}
             {customProgress.total > 0 && (
               <>
                 <div style={{ fontSize: '13px', marginTop: '4px' }}>{customProgress.reviewed}/{customProgress.total} reviewed at least once</div>
@@ -435,11 +435,11 @@ export default function Dashboard() {
       <div>
         <h4>Revision sheet</h4>
         <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
-        <p style={{ fontSize: '12px', opacity: .6, margin: '0 0 var(--space-3)' }}>
+        <p style={{ fontSize: '12px', opacity: .65, margin: '0 0 var(--space-3)' }}>
           Choose which notes to include, then print a one-page summary with your exam countdown, weakest/strongest areas, and the selected notes.
         </p>
         {s.notes.length === 0 && (
-          <p style={{ fontSize: '13px', opacity: .6, margin: '0 0 var(--space-3)' }}>No notes yet — add some in the Notes tab first.</p>
+          <p style={{ fontSize: '13px', opacity: .65, margin: '0 0 var(--space-3)' }}>No notes yet — add some in the Notes tab first.</p>
         )}
         {s.notes.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: 'var(--space-4)' }}>

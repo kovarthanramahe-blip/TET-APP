@@ -396,10 +396,15 @@ export function reminderReasons(s) {
   return reasons;
 }
 
+// Phase 25: returns theme-aware CSS variables (see styles.css) rather than
+// fixed hex -- confOf's 3 non-zero levels are rendered as both chip TEXT
+// (Syllabus.jsx) and decorative dot fill/border, and a single hex for
+// each couldn't pass WCAG AA as text against both a light and a dark
+// background at once.
 export function confColor(c) {
-  if (c === 1) return '#b3392f';
-  if (c === 2) return '#c28d41';
-  if (c === 3) return '#3f7d4e';
+  if (c === 1) return 'var(--danger-ink)';
+  if (c === 2) return 'var(--warning-ink)';
+  if (c === 3) return 'var(--success-ink)';
   return 'var(--color-divider)';
 }
 export function confName(c) { return ['Untouched', 'Needs work', 'Moderate', 'Mastered'][c]; }

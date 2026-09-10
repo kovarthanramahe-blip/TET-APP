@@ -59,6 +59,18 @@
   --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
 
   --accent-ink: var(--color-accent-700);
+
+  /* Phase 25: theme-aware readable variants of the app's status colors.
+     A single fixed hex can't read well against both a very light and a
+     very dark background -- these pairs were computed against the actual
+     --color-bg/--color-surface of each theme to clear WCAG AA's 4.5:1 for
+     normal text with a real margin, not just barely. Use these wherever
+     one of these colors is TEXT (chips, warnings, priority tags); the
+     plain literals (#b3392f etc.) remain fine for borders/decorative
+     color-mix washes, which only need the laxer 3:1 non-text threshold. */
+  --danger-ink: #b3392f;
+  --success-ink: #2f6b3e;
+  --warning-ink: #8a5f1f;
 }
 
 :root[data-theme="dark"] {
@@ -67,6 +79,9 @@
   --color-text: #efe9e0;
   --color-divider: color-mix(in srgb, #efe9e0 20%, transparent);
   --accent-ink: var(--color-accent-300);
+  --danger-ink: #e8776b;
+  --success-ink: #5fae74;
+  --warning-ink: #c28d41;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5);
   --shadow-md: 0 3px 10px rgba(0, 0, 0, .45);
 }
@@ -128,13 +143,18 @@ figcaption {
 }
 .btn svg { display: block; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn-primary { color: var(--color-accent); border-color: var(--color-accent); }
+/* Phase 25: --color-accent (#b68235) is a fixed, non-theme-adjusted brand
+   color, and only reaches ~3:1 against either theme's background --
+   passable for a decorative border, not for the text this class actually
+   sets. --accent-ink is the same accent hue already adjusted per-theme
+   (darker in light mode, lighter in dark) specifically for use as text. */
+.btn-primary { color: var(--accent-ink); border-color: var(--color-accent); }
 .btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
 .btn-primary:active { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
 .btn-secondary { border-color: var(--color-divider); }
 .btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
 .btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
-.btn-ghost { color: var(--color-accent); padding-inline: var(--space-1); }
+.btn-ghost { color: var(--accent-ink); padding-inline: var(--space-1); }
 .btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
 .btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
 .btn-icon { width: 36px; height: 36px; padding: 0; }
@@ -230,7 +250,12 @@ textarea.input { min-height: 90px; resize: vertical; }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th {
   text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  /* Phase 25: same fix as the inline opacity:.6 -> .65 pass elsewhere --
+     a color-mix() percentage against var(--color-text) is mathematically
+     the same blend as opacity at that fraction, and 60% narrowly failed
+     WCAG AA here too (this rule wasn't part of that sed pass since it
+     lives in CSS, not an inline style). */
+  color: color-mix(in srgb, var(--color-text) 65%, transparent);
   padding: var(--space-2); border-bottom: 1px solid var(--color-divider);
 }
 .table td {

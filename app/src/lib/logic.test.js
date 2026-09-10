@@ -550,10 +550,10 @@ describe('reminderReasons', () => {
 });
 
 describe('confColor / confName / masteredCount', () => {
-  it('confColor maps each confidence level to a distinct color, with a neutral default', () => {
-    expect(confColor(1)).toBe('#b3392f');
-    expect(confColor(2)).toBe('#c28d41');
-    expect(confColor(3)).toBe('#3f7d4e');
+  it('confColor maps each confidence level to a distinct theme-aware color variable, with a neutral default', () => {
+    expect(confColor(1)).toBe('var(--danger-ink)');
+    expect(confColor(2)).toBe('var(--warning-ink)');
+    expect(confColor(3)).toBe('var(--success-ink)');
     expect(confColor(0)).toBe('var(--color-divider)');
   });
 

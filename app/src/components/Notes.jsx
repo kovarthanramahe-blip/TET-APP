@@ -26,7 +26,12 @@ export default function Notes() {
             <button key={n.id} type="button" onClick={() => actions.setActiveNote(n.id)}
               style={{ ...navBtn(n.id === note.id), flexDirection: 'column', alignItems: 'flex-start', gap: '0' }}>
               <span style={{ fontSize: '14px' }}>{n.title || 'Untitled'}</span>
-              <span style={{ fontSize: '11px', opacity: .6 }}>{n.topic}</span>
+              {/* Phase 25: full opacity when this note is the active one --
+                  the active button's own tinted highlight background
+                  (navBtn()) needs more than .65 of the accent-ink text
+                  color this inherits to clear WCAG AA; faded is only
+                  correct against the plain (inactive) background. */}
+              <span style={{ fontSize: '11px', opacity: n.id === note.id ? 1 : .65 }}>{n.topic}</span>
             </button>
           ))}
         </div>

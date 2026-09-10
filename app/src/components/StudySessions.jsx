@@ -130,7 +130,7 @@ export default function StudySessions() {
               ))}
             </tbody>
           </table>
-          <p style={{ fontSize: '12px', opacity: .6, marginTop: 'var(--space-3)' }}>{sessionSummary}</p>
+          <p style={{ fontSize: '12px', opacity: .65, marginTop: 'var(--space-3)' }}>{sessionSummary}</p>
         </div>
       </div>
       </section>

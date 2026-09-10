@@ -6,9 +6,24 @@
 import { today } from './dates.js';
 import { sanitizeForPersistence } from './logic.js';
 
+// Phase 33: CSV/"formula injection" mitigation. Excel, Google Sheets and
+// LibreOffice all treat a cell whose content starts with =, +, -, @ (or a
+// leading tab/CR) as a formula to evaluate rather than literal text when a
+// CSV is opened -- so a note/task titled e.g.
+// =HYPERLINK("http://evil.example","click") would execute the moment this
+// export is opened in a spreadsheet, since every string column here
+// (title, body, topic, label) is free text the user typed themselves.
+// Prefixing with a leading apostrophe is the standard OWASP-recommended
+// fix: it's not part of the CSV format itself, but it's the same
+// convention these spreadsheet apps already use to mean "force text" for
+// a manually-typed cell, so it neutralizes the formula interpretation on
+// import without otherwise changing how the value reads.
+const RISKY_LEADING_CHAR = /^[=+\-@\t\r]/;
+
 function csvEscape(value) {
   const str = value === null || value === undefined ? '' : String(value);
-  return /[",\r\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+  const safe = RISKY_LEADING_CHAR.test(str) ? "'" + str : str;
+  return /[",\r\n]/.test(safe) ? '"' + safe.replace(/"/g, '""') + '"' : safe;
 }
 
 function toCSV(columns, rows) {

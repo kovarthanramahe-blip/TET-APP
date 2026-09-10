@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { exportNotesCSV, exportBackupJSON, parseBackupFile } from './exportData.js';
+import { exportNotesCSV, exportTasksCSV, exportBackupJSON, parseBackupFile } from './exportData.js';
 import { seedState, sanitizeForPersistence } from './logic.js';
 
 // jsdom doesn't implement URL.createObjectURL/revokeObjectURL -- stub them
@@ -82,5 +82,58 @@ describe('exportNotesCSV (regression: shared download plumbing still works for C
     exportNotesCSV(seedState());
     expect(clickedAnchors).toHaveLength(1);
     expect(clickedAnchors[0].download).toMatch(/^htet-notes-\d{4}-\d{2}-\d{2}\.csv$/);
+  });
+});
+
+// Phase 33: CSV/formula injection. Excel/Sheets/LibreOffice treat a cell
+// starting with =, +, -, or @ as a formula, not literal text, on open --
+// every string column exported here (title/body/topic/label) is free text
+// the user typed themselves, so a title like
+// =HYPERLINK("http://evil","click") must not reach the file unescaped.
+async function csvTextFor(exportFn, state) {
+  exportFn(state);
+  const blob = URL.createObjectURL.mock.calls.at(-1)[0];
+  return blob.text();
+}
+
+describe('CSV export: formula-injection guard', () => {
+  // Kept free of embedded commas/quotes here -- that interaction (the
+  // prefix combined with RFC 4180 quoting) is covered precisely by its
+  // own test below instead of approximated with a substring check.
+  const riskyValues = ['=SUM(A1:A9)', '+1+1', '-2+3', "@cmd|'/C calc'!A1"];
+
+  it('prefixes a note title/body starting with =, +, -, or @ so a spreadsheet treats it as text', async () => {
+    for (const risky of riskyValues) {
+      const s = { ...seedState(), notes: [{ id: 'n1', title: risky, topic: '', body: risky }] };
+      const csv = await csvTextFor(exportNotesCSV, s);
+      const dataLine = csv.split('\r\n')[1];
+      // The raw value must never appear un-prefixed (that would mean it
+      // reaches the spreadsheet as a live formula).
+      expect(dataLine.startsWith(risky)).toBe(false);
+      expect(dataLine).toContain("'" + risky);
+    }
+  });
+
+  it('prefixes a task title the same way', async () => {
+    const s = { ...seedState(), tasks: [{ id: 't1', title: '=1+1', priority: 'Low', due: '', done: false }] };
+    const csv = await csvTextFor(exportTasksCSV, s);
+    const dataLine = csv.split('\r\n')[1];
+    expect(dataLine.startsWith("'=1+1")).toBe(true);
+  });
+
+  it('leaves ordinary titles (not starting with a risky character) untouched', async () => {
+    const s = { ...seedState(), notes: [{ id: 'n1', title: 'Normal title', topic: '', body: 'Some body text' }] };
+    const csv = await csvTextFor(exportNotesCSV, s);
+    const dataLine = csv.split('\r\n')[1];
+    expect(dataLine.startsWith('Normal title')).toBe(true);
+  });
+
+  it('still applies the existing comma/quote/newline escaping on top of the prefix', async () => {
+    const s = { ...seedState(), notes: [{ id: 'n1', title: '=A,"B"', topic: '', body: '' }] };
+    const csv = await csvTextFor(exportNotesCSV, s);
+    const dataLine = csv.split('\r\n')[1];
+    // Expect: prefixed with ', then the whole field quoted because of the
+    // comma, with the embedded quote doubled per RFC 4180.
+    expect(dataLine.startsWith('"\'=A,""B"""')).toBe(true);
   });
 });

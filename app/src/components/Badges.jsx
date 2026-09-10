@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../AppContext.jsx';
 import { BADGE_DEFS, streakCount, minutesOn, badgeMetricsFor } from '../lib/logic.js';
+import { offsetDateString } from '../lib/dates.js';
 
 export default function Badges() {
   const { state: s } = useApp();
@@ -8,7 +9,7 @@ export default function Badges() {
 
   const streakDots = [];
   for (let i = 13; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    const d = offsetDateString(-i);
     const m = minutesOn(s, d);
     streakDots.push({
       title: d + ' · ' + m + ' min',

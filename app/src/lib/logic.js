@@ -3,13 +3,12 @@ import { BANK } from '../data/quizBank.js';
 import { CARDS } from '../data/flashcards.js';
 import { BADGE_DEFS } from '../data/badges.js';
 import { QUOTES } from '../data/quotes.js';
-import { today, dayIndex } from './dates.js';
+import { today, dayIndex, offsetDateString, toLocalDateString, seedDay } from './dates.js';
 import { readStoredState, writeStoredState, STORAGE_KEY } from './dataStore.js';
 
 export { STORAGE_KEY };
 
 export function seedState() {
-  const seedDay = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
   return {
     view: 'dash', theme: 'light', level: 'Level 1 (PRT)',
     confidence: {},
@@ -117,7 +116,7 @@ export function totalMinutes(s) {
 export function streakCount(s) {
   let n = 0;
   for (let i = 0; i < 400; i++) {
-    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    const d = offsetDateString(-i);
     if (minutesOn(s, d) > 0) n++;
     else if (i > 0) break;
   }
@@ -133,7 +132,7 @@ export function goalStreakCount(s) {
   const goal = Math.max(1, Number(s.dailyGoalMinutes) || 60);
   let n = 0;
   for (let i = 0; i < 400; i++) {
-    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    const d = offsetDateString(-i);
     if (minutesOn(s, d) >= goal) n++;
     else if (i > 0) break;
   }
@@ -248,7 +247,7 @@ export function dailyMinutesSeries(s, days) {
   const series = [];
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(Date.now() - i * 86400000);
-    const iso = d.toISOString().slice(0, 10);
+    const iso = toLocalDateString(d);
     series.push({ date: d, iso, mins: minutesOn(s, iso) });
   }
   return series;
@@ -267,7 +266,7 @@ export function weeklyConsistency(s, weeks) {
   for (let w = weeks - 1; w >= 0; w--) {
     let count = 0;
     for (let i = 0; i < 7; i++) {
-      const iso = new Date(Date.now() - (w * 7 + i) * 86400000).toISOString().slice(0, 10);
+      const iso = offsetDateString(-(w * 7 + i));
       if (minutesOn(s, iso) > 0) count++;
     }
     out.push({ label: w === 0 ? 'This wk' : w + 'w ago', daysStudied: count });

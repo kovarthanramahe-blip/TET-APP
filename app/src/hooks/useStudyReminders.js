@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { reminderReasons } from '../lib/logic.js';
 import { sendNotification, notificationPermission } from '../lib/notifications.js';
+import { today } from '../lib/dates.js';
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -26,7 +27,7 @@ export function useStudyReminders(state) {
 
     const check = () => {
       if (notificationPermission() !== 'granted') return;
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = today();
       if (lastNotifiedDateRef.current === todayStr) return; // at most one per day
 
       const reasons = reminderReasons(stateRef.current);

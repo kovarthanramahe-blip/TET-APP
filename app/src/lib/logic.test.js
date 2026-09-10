@@ -200,6 +200,49 @@ describe('minutesOn / totalMinutes / streakCount / goalStreakCount', () => {
   });
 });
 
+// Phase 36: streakCount()/dailyMinutesSeries() etc. walk backward via
+// dates.js's offsetDateString(), which used to derive its date string from
+// toISOString() -- always UTC by spec. For a timezone ahead of UTC (IST,
+// this app's actual audience), a session logged at 1am IST would be
+// stamped with today's LOCAL date by logSessionState() (via today(), same
+// underlying bug) but streakCount() would look for it under what it
+// thought was "today" using the same broken logic -- so under the OLD
+// code the two actually agreed with each other (both wrong the same way)
+// and this specific end-to-end path wouldn't have shown symptoms on its
+// own. What genuinely breaks is a session logged late one IST evening
+// (correctly stamped, UTC and local agree then) followed by a session
+// early the NEXT IST morning: the old UTC-based "today" during that
+// morning window still resolves to the PREVIOUS calendar day, so the two
+// sessions collapse onto the same UTC date instead of counting as two
+// separate consecutive days. This reproduces exactly that scenario.
+describe('streakCount under IST: a late-evening session followed by an early-morning one counts as two separate days', () => {
+  const originalTZ = process.env.TZ;
+
+  beforeEach(() => {
+    process.env.TZ = 'Asia/Kolkata';
+  });
+
+  afterEach(() => {
+    process.env.TZ = originalTZ;
+  });
+
+  it('counts a streak of 2 across the midnight boundary, not 1', () => {
+    // Day 1, 9pm IST (= 3:30pm UTC same day). Starts from an empty
+    // sessions list, not seedState()'s own sample data, so the streak
+    // this produces is exactly the two sessions below -- nothing else.
+    vi.setSystemTime(new Date('2026-06-15T15:30:00.000Z'));
+    const day1 = logSessionState({ sessions: [] }, 'Evening revision', 45, null);
+
+    // Day 2, 1am IST (= 7:30pm UTC on the PREVIOUS day) -- the exact
+    // window the old UTC-based date logic got wrong.
+    vi.setSystemTime(new Date('2026-06-15T19:30:00.000Z'));
+    const day2 = logSessionState(day1, 'Early morning revision', 30, null);
+
+    expect(day1.sessions[0].date).not.toBe(day2.sessions[0].date);
+    expect(streakCount(day2)).toBe(2);
+  });
+});
+
 describe('modulesFor / topicKey / confOf', () => {
   it('modulesFor returns the syllabus for the current level, [] for an unknown one', () => {
     const s = seedState();

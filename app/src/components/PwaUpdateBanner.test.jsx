@@ -69,4 +69,23 @@ describe('PwaUpdateBanner', () => {
     expect(screen.getByText(/new version/)).toBeInTheDocument();
     expect(screen.queryByText(/ready to work offline/)).not.toBeInTheDocument();
   });
+
+  it('auto-dismisses the offline-ready message after a few seconds, since it can otherwise sit over page content in that corner indefinitely', () => {
+    vi.useFakeTimers();
+    offlineReady = true;
+    render(<PwaUpdateBanner />);
+    expect(screen.getByText(/ready to work offline/)).toBeInTheDocument();
+    vi.advanceTimersByTime(6000);
+    expect(setOfflineReady).toHaveBeenCalledWith(false);
+    vi.useRealTimers();
+  });
+
+  it('does NOT auto-dismiss the update-available prompt (it requires a real decision)', () => {
+    vi.useFakeTimers();
+    needRefresh = true;
+    render(<PwaUpdateBanner />);
+    vi.advanceTimersByTime(10000);
+    expect(setNeedRefresh).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
 });

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   loadState, saveState, phaseLength, finishPhaseState, logSessionState,
   gradeState, buildQuiz, submitQuizState, resetProgressState,
-  addCustomCardState, deleteCustomCardState, gradeCustomCardState
+  addCustomCardState, deleteCustomCardState, gradeCustomCardState,
+  addCustomTopicState, deleteCustomTopicState
 } from '../lib/logic.js';
 
 export function useAppState() {
@@ -129,6 +130,12 @@ export function useAppState() {
     deleteCustomCard: (id) => setState(s => deleteCustomCardState(s, id)),
     revealCustomCard: (id) => update({ customCardCurrentId: id, customCardRevealed: true }),
     gradeCustomCard: (id, g) => setState(s => gradeCustomCardState(s, id, g)),
+
+    setCustomTopicModule: (v) => update({ customTopicModule: v }),
+    setCustomTopicName: (v) => update({ customTopicName: v }),
+    setCustomTopicDesc: (v) => update({ customTopicDesc: v }),
+    addCustomTopic: () => setState(s => addCustomTopicState(s)),
+    deleteCustomTopic: (id) => setState(s => deleteCustomTopicState(s, id)),
 
     setActiveNote: (id) => update({ activeNote: id }),
     updateNote: (id, patch) => update(s => ({ notes: s.notes.map(n => n.id === id ? { ...n, ...patch } : n) })),

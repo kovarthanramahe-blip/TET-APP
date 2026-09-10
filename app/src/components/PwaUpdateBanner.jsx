@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
 // Same small, non-blocking, dismissible-card pattern as MigrationBanner.jsx.
@@ -11,6 +11,19 @@ export default function PwaUpdateBanner() {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker
   } = useRegisterSW();
+
+  // Being position: fixed in a screen corner, this card can sit on top of
+  // whatever real page content happens to scroll into that same corner
+  // (e.g. Syllabus.jsx's "Add topic" button) and swallow clicks meant for
+  // it for as long as it's shown. "Offline ready" is a pure FYI with
+  // nothing to decide, unlike the update prompt below -- auto-dismissing
+  // it removes that dead zone quickly instead of leaving it there
+  // indefinitely until someone happens to notice and dismiss it by hand.
+  useEffect(() => {
+    if (!offlineReady) return;
+    const id = setTimeout(() => setOfflineReady(false), 6000);
+    return () => clearTimeout(id);
+  }, [offlineReady, setOfflineReady]);
 
   const base = {
     position: 'fixed', right: 'var(--space-4)', bottom: 'var(--space-4)', maxWidth: '340px',

@@ -152,6 +152,9 @@ const FIELD_VALIDATORS = {
     isSafeString(item.id) && isSafeString(item.front) && isSafeString(item.back) && isSafeString(item.category)
     && isSafeStringOrNull(item.topicId) && isFiniteNumber(item.ease) && isFiniteNumber(item.interval)
     && isFiniteNumber(item.reps) && isFiniteNumber(item.due)),
+  customTopics: v => isArrayOfShape(v, item =>
+    isSafeString(item.id) && isSafeString(item.level) && isSafeString(item.moduleName)
+    && isSafeString(item.name) && isSafeString(item.desc)),
   attempts: v => isArrayOfShape(v, item =>
     isSafeString(item.when) && isSafeString(item.mode) && isFiniteNumber(item.correct)
     && isFiniteNumber(item.total) && isFiniteNumber(item.pct)),
@@ -169,6 +172,9 @@ const FIELD_VALIDATORS = {
   customCardTopicId: isSafeStringOrNull,
   customCardCurrentId: isSafeStringOrNull,
   customCardRevealed: v => typeof v === 'boolean',
+  customTopicModule: isSafeString,
+  customTopicName: isSafeString,
+  customTopicDesc: isSafeString,
   activeNote: isSafeStringOrNull,
   timerMode: isSafeString,
   phase: isSafeString,

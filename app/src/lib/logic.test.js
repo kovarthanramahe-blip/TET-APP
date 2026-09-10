@@ -3,7 +3,8 @@ import {
   seedState, loadState, saveState, sanitizeForPersistence,
   focusMins, breakMins, phaseLength, logSessionState, finishPhaseState,
   minutesOn, totalMinutes, streakCount, goalStreakCount,
-  modulesFor, topicKey, confOf, globalSearch,
+  modulesFor, modulesWithCustom, topicKey, confOf, globalSearch,
+  addCustomTopicState, deleteCustomTopicState,
   minutesByModule, minutesByTopic,
   dailyMinutesSeries, daysStudiedInRange, weeklyConsistency,
   quizAverageScore, quizPassRate, quizTrend,
@@ -215,6 +216,88 @@ describe('modulesFor / topicKey / confOf', () => {
     const s = { level: 'Level 1 (PRT)', confidence: { 'Level 1 (PRT)|Mod|Top': 3 } };
     expect(confOf(s, 'Mod', 'Top')).toBe(3);
     expect(confOf(s, 'Mod', 'Other topic')).toBe(0);
+  });
+});
+
+describe('modulesWithCustom / addCustomTopicState / deleteCustomTopicState', () => {
+  it('modulesWithCustom is identical to modulesFor when there are no custom topics for the current level', () => {
+    const s = seedState();
+    expect(modulesWithCustom(s)).toEqual(modulesFor(s));
+  });
+
+  it('addCustomTopicState is a no-op when module or topic name is blank', () => {
+    const s = { ...seedState(), customTopicModule: '  ', customTopicName: 'Topic' };
+    expect(addCustomTopicState(s)).toBe(s);
+  });
+
+  it('addCustomTopicState attaches a custom topic to an EXISTING module by name', () => {
+    const s = seedState();
+    const moduleName = modulesFor(s)[0].name;
+    const s2 = {
+      ...s, customTopicModule: moduleName, customTopicName: 'My extra topic', customTopicDesc: 'Extra detail'
+    };
+    const next = addCustomTopicState(s2);
+    expect(next.customTopics).toHaveLength(1);
+    expect(next.customTopics[0]).toMatchObject({ level: s.level, moduleName, name: 'My extra topic', desc: 'Extra detail' });
+    // Draft fields clear on success, same as addCustomCardState().
+    expect(next.customTopicModule).toBe('');
+    expect(next.customTopicName).toBe('');
+    expect(next.customTopicDesc).toBe('');
+
+    const merged = modulesWithCustom(next);
+    const mod = merged.find(m => m.name === moduleName);
+    expect(mod.topics.some(t => t[0] === 'My extra topic')).toBe(true);
+    // The base module's own topic count is untouched by modulesFor() itself.
+    expect(modulesFor(next).find(m => m.name === moduleName).topics.length)
+      .toBe(mod.topics.length - 1);
+  });
+
+  it('addCustomTopicState starts a brand-new module when the name matches nothing existing', () => {
+    const s = { ...seedState(), customTopicModule: 'A Whole New Module', customTopicName: 'Topic X', customTopicDesc: '' };
+    const next = addCustomTopicState(s);
+    const merged = modulesWithCustom(next);
+    const mod = merged.find(m => m.name === 'A Whole New Module');
+    expect(mod).toBeDefined();
+    expect(mod.weight).toBe(0);
+    expect(mod.topics).toEqual([['Topic X', 'Custom topic']]);
+  });
+
+  it('a custom topic only appears for the level it was added under', () => {
+    const s = { ...seedState(), level: 'Level 1 (PRT)', customTopicModule: 'Mod', customTopicName: 'T', customTopicDesc: '' };
+    const withTopic = addCustomTopicState(s);
+    expect(modulesWithCustom({ ...withTopic, level: 'Level 2 (TGT)' }))
+      .toEqual(modulesFor({ ...withTopic, level: 'Level 2 (TGT)' }));
+  });
+
+  it('modulePerformance/masteredCount/globalSearch pick up custom topics via modulesWithCustom', () => {
+    const s = { ...seedState(), customTopicModule: 'A Whole New Module', customTopicName: 'Topic X', customTopicDesc: 'desc here' };
+    const next = addCustomTopicState(s);
+    expect(masteredCount(next)).toBe(0);
+    const key = topicKey(next.level, 'A Whole New Module', 'Topic X');
+    const mastered = { ...next, confidence: { ...next.confidence, [key]: 3 } };
+    expect(masteredCount(mastered)).toBe(1);
+    expect(modulePerformance(next, {}).some(m => m.name === 'A Whole New Module')).toBe(true);
+    expect(globalSearch(next, 'Topic X').topics).toEqual([{ module: 'A Whole New Module', name: 'Topic X', desc: 'desc here' }]);
+  });
+
+  it('deleteCustomTopicState removes the topic and its confidence mark', () => {
+    const s = { ...seedState(), customTopicModule: 'Mod', customTopicName: 'T', customTopicDesc: '' };
+    const withTopic = addCustomTopicState(s);
+    const id = withTopic.customTopics[0].id;
+    const key = topicKey(withTopic.level, 'Mod', 'T');
+    const withConfidence = { ...withTopic, confidence: { ...withTopic.confidence, [key]: 2 } };
+
+    const next = deleteCustomTopicState(withConfidence, id);
+    expect(next.customTopics).toEqual([]);
+    expect(next.confidence[key]).toBeUndefined();
+  });
+
+  it('deleteCustomTopicState is safe to call for an id that has no confidence mark yet', () => {
+    const s = { ...seedState(), customTopicModule: 'Mod', customTopicName: 'T', customTopicDesc: '' };
+    const withTopic = addCustomTopicState(s);
+    const id = withTopic.customTopics[0].id;
+    const next = deleteCustomTopicState(withTopic, id);
+    expect(next.customTopics).toEqual([]);
   });
 });
 

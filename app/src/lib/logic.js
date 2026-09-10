@@ -33,12 +33,14 @@ export function seedState() {
     ],
     cards: {},
     customCards: [],
+    customTopics: [],
     attempts: [],
     reviews: 0,
     taskFilter: 'Open', taskDraft: '', taskDue: '', taskPriority: 'Medium',
     logLabel: '', logMinutes: 25, sessionTopicId: null,
     customCardFront: '', customCardBack: '', customCardCategory: '', customCardTopicId: null,
     customCardCurrentId: null, customCardRevealed: false,
+    customTopicModule: '', customTopicName: '', customTopicDesc: '',
     activeNote: 'n1',
     timerMode: 'Pomodoro 25/5', phase: 'focus', running: false, remaining: 1500, cycles: 0,
     quizStage: 'setup', quizTypes: ['mcq', 'tf'], quizParts: [], quizMode: 'Practice',
@@ -136,6 +138,57 @@ export function modulesFor(s) { return SYLLABUS[s.level] || []; }
 export function topicKey(level, m, t) { return level + '|' + m + '|' + t; }
 export function confOf(s, m, t) { return s.confidence[topicKey(s.level, m, t)] || 0; }
 
+// Phase 23: merges the current level's custom topics into the seeded
+// syllabus, for confidence/mastery tracking ONLY (Syllabus.jsx,
+// modulePerformance() below, masteredCount(), and globalSearch()'s topics
+// section). Deliberately a separate function from modulesFor() rather than
+// changing what that returns -- Notes.jsx/Flashcards.jsx/StudySessions.jsx
+// all call modulesFor() directly for their "link to topic" pickers, and
+// must keep offering only the shared seeded syllabus (a custom topic has
+// no place to resolve to there; see the migration's design note). A
+// custom topic attaches to an EXISTING module by name if one matches, or
+// starts a new module (weight 0, since it carries no official exam marks)
+// otherwise.
+export function modulesWithCustom(s) {
+  const base = modulesFor(s);
+  const custom = (s.customTopics || []).filter(t => t.level === s.level);
+  if (!custom.length) return base;
+  const merged = base.map(m => ({ ...m, topics: [...m.topics] }));
+  custom.forEach(t => {
+    let mod = merged.find(m => m.name === t.moduleName);
+    if (!mod) { mod = { name: t.moduleName, weight: 0, topics: [] }; merged.push(mod); }
+    mod.topics.push([t.name, t.desc || 'Custom topic']);
+  });
+  return merged;
+}
+
+// Mirrors addCustomCardState()'s local-mode CRUD shape. Always attaches to
+// the CURRENT level (s.level) -- Syllabus.jsx only ever shows one level's
+// modules at a time, so there's no separate level picker in the add form.
+export function addCustomTopicState(s) {
+  const moduleName = s.customTopicModule.trim();
+  const name = s.customTopicName.trim();
+  if (!moduleName || !name) return s;
+  const topic = { id: 'topic' + Date.now(), level: s.level, moduleName, name, desc: s.customTopicDesc.trim() };
+  return {
+    ...s, customTopics: [topic, ...s.customTopics],
+    customTopicModule: '', customTopicName: '', customTopicDesc: ''
+  };
+}
+
+export function deleteCustomTopicState(s, id) {
+  const topic = s.customTopics.find(t => t.id === id);
+  const rest = s.customTopics.filter(t => t.id !== id);
+  if (!topic) return { ...s, customTopics: rest };
+  // No FK cascade in local mode either -- drop the matching confidence
+  // mark explicitly, same cleanup cloudDeleteCustomTopic() does server-side.
+  const key = topicKey(topic.level, topic.moduleName, topic.name);
+  if (!(key in s.confidence)) return { ...s, customTopics: rest };
+  const confidence = { ...s.confidence };
+  delete confidence[key];
+  return { ...s, customTopics: rest, confidence };
+}
+
 // Phase 10: global search across the app's own content -- notes, tasks,
 // custom flashcards, and syllabus topics for the CURRENT level (via
 // modulesFor(s), the same level-scoping every other cross-cutting lookup
@@ -152,7 +205,7 @@ export function globalSearch(s, query) {
   const customCards = s.customCards.filter(c => (c.front + ' ' + c.back + ' ' + c.category).toLowerCase().includes(q)).slice(0, 6);
 
   const topics = [];
-  modulesFor(s).forEach(m => {
+  modulesWithCustom(s).forEach(m => {
     m.topics.forEach(t => {
       if ((t[0] + ' ' + t[1]).toLowerCase().includes(q)) topics.push({ module: m.name, name: t[0], desc: t[1] });
     });
@@ -268,7 +321,7 @@ export function partForModule(moduleName) {
 // yet is never shown as "0% quiz average" -- that would be inventing a
 // score, not reporting one.
 export function modulePerformance(s, quizByPart) {
-  return modulesFor(s).map(m => {
+  return modulesWithCustom(s).map(m => {
     const done = m.topics.filter(t => confOf(s, m.name, t[0]) === 3).length;
     const confidencePct = Math.round((done / m.topics.length) * 100);
     const qp = quizByPart && quizByPart[partForModule(m.name)];
@@ -353,7 +406,7 @@ export function confName(c) { return ['Untouched', 'Needs work', 'Moderate', 'Ma
 
 export function masteredCount(s) {
   let n = 0;
-  modulesFor(s).forEach(m => m.topics.forEach(t => { if (confOf(s, m.name, t[0]) === 3) n++; }));
+  modulesWithCustom(s).forEach(m => m.topics.forEach(t => { if (confOf(s, m.name, t[0]) === 3) n++; }));
   return n;
 }
 

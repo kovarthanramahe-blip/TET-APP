@@ -8,7 +8,7 @@
 import { supabase } from './supabaseClient.js';
 import { CARDS } from '../data/flashcards.js';
 import { today, dayIndex } from './dates.js';
-import { isCorrect } from './logic.js';
+import { isCorrect, topicKey } from './logic.js';
 
 function assertNoError(context, error) {
   if (error) throw new Error(`[cloudData] ${context} failed: ${error.message}`);
@@ -221,13 +221,63 @@ export async function fetchTopicKeyMaps() {
   return { keyToTopicId, topicIdToKey };
 }
 
+// Phase 23. A custom topic has no row in the shared public.topics table
+// (see 20260910_custom_topics.sql for why), so it's fetched and merged into
+// the confidence key maps separately below rather than changing
+// fetchTopicKeyMaps() itself -- that function's output is also used by
+// fetchNotes()/fetchStudySessions()/fetchCustomCards() above, none of which
+// should ever resolve a custom topic (their own pickers only ever offer
+// the shared seeded syllabus; see the migration's design note), so it's
+// left completely untouched.
+export async function fetchCustomTopics(userId) {
+  const { data, error } = await supabase
+    .from('custom_topics')
+    .select('id, level, module_name, name, description')
+    .eq('user_id', userId);
+  assertNoError('fetching custom topics', error);
+  return (data || []).map(row => ({
+    id: row.id, level: row.level, moduleName: row.module_name, name: row.name, desc: row.description || ''
+  }));
+}
+
+export async function cloudAddCustomTopic(userId, { level, moduleName, name, desc }) {
+  const { data, error } = await supabase
+    .from('custom_topics')
+    .insert({ user_id: userId, level, module_name: moduleName, name, description: desc || null })
+    .select('id, level, module_name, name, description')
+    .single();
+  assertNoError('adding a custom topic', error);
+  return { id: data.id, level: data.level, moduleName: data.module_name, name: data.name, desc: data.description || '' };
+}
+
+// No DB-level FK cascade from custom_topics to topic_confidence (that
+// column's FK was intentionally dropped -- see the migration), so the
+// matching confidence mark, if any, is deleted here explicitly first,
+// mirroring what an FK ON DELETE CASCADE would otherwise have done.
+export async function cloudDeleteCustomTopic(userId, id) {
+  const { error: confError } = await supabase.from('topic_confidence').delete().eq('user_id', userId).eq('topic_id', id);
+  assertNoError('deleting the custom topic\'s confidence mark', confError);
+  const { error } = await supabase.from('custom_topics').delete().eq('user_id', userId).eq('id', id);
+  assertNoError('deleting a custom topic', error);
+}
+
 // Returns both the local-shape confidence object (for merging into app
 // state) and the keyToTopicId map the caller needs to hold onto for any
 // later cloudSetTopicConfidence() calls -- reference data that doesn't
 // change while the app is open, so it's fetched once per activation
-// rather than on every mark.
+// rather than on every mark. keyToTopicId/topicIdToKey are merged here
+// (shared public.topics plus this user's own custom_topics) so
+// cloudSetTopicConfidence() and cycleConfidence() work identically for a
+// custom topic's key as for a seeded one, with no separate code path.
 export async function fetchTopicConfidence(userId) {
   const { keyToTopicId, topicIdToKey } = await fetchTopicKeyMaps();
+  const customTopics = await fetchCustomTopics(userId);
+  for (const t of customTopics) {
+    const key = topicKey(t.level, t.moduleName, t.name);
+    keyToTopicId.set(key, t.id);
+    topicIdToKey.set(t.id, key);
+  }
+
   const { data, error } = await supabase
     .from('topic_confidence')
     .select('topic_id, level')

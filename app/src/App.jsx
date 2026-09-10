@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar.jsx';
 import Header from './components/Header.jsx';
 import QuoteBar from './components/QuoteBar.jsx';
 import MigrationBanner from './components/MigrationBanner.jsx';
+import PwaUpdateBanner from './components/PwaUpdateBanner.jsx';
 import { useStudyReminders } from './hooks/useStudyReminders.js';
 
 // Phase 14: each view is its own chunk, loaded only when actually
@@ -57,6 +58,7 @@ function Shell() {
         </Suspense>
       </main>
       <MigrationBanner />
+      <PwaUpdateBanner />
     </div>
   );
 }

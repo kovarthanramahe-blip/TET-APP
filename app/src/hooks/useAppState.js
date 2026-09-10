@@ -15,18 +15,43 @@ export function useAppState() {
     saveState(state);
   }, [state]);
 
-  // 1s tick: pomodoro/stopwatch countdown + mock exam clock
+  // 1s tick: pomodoro/stopwatch countdown + mock exam clock.
+  //
+  // Ticks by REAL elapsed time (measured via Date.now()) rather than a
+  // fixed 1 second per firing. Browsers throttle or fully suspend
+  // setInterval in a backgrounded tab or a locked phone screen -- exactly
+  // where a 25-minute focus timer or a timed mock exam is likely to be
+  // left running -- so a fixed decrement would silently fall behind real
+  // time whenever a tick is delayed or skipped, understating how much
+  // time actually passed. Whenever this interval DOES fire, even after a
+  // long gap, it corrects both countdowns to the true remaining time.
+  //
+  // `r <= 0`/`m <= 0` (not `=== 0`) because a big elapsed jump can carry
+  // remaining/mockLeft straight past zero without ever landing exactly on
+  // it. Deliberately only advances ONE phase transition per tick even if
+  // the elapsed jump was large enough to have crossed several (e.g. a
+  // phone locked through an entire break) -- finishPhaseState() logs a
+  // full nominal phase length as studied time, so fast-forwarding through
+  // multiple phases on reopen would credit study time that was never
+  // actually spent studying, which is worse than just completing the one
+  // phase that was in progress and leaving the rest to run normally.
   useEffect(() => {
+    let lastTick = Date.now();
     const id = setInterval(() => {
+      const now = Date.now();
+      const elapsedSeconds = Math.max(0, Math.round((now - lastTick) / 1000));
+      lastTick = now;
+      if (elapsedSeconds === 0) return;
+
       setState(s => {
         let next = s;
         if (s.running && s.remaining > 0) {
-          const r = s.remaining - 1;
-          next = r === 0 ? finishPhaseState(next) : { ...next, remaining: r };
+          const r = s.remaining - elapsedSeconds;
+          next = r <= 0 ? finishPhaseState(next) : { ...next, remaining: r };
         }
         if (next.quizStage === 'active' && next.quizMode === 'Mock exam' && next.mockLeft > 0) {
-          const m = next.mockLeft - 1;
-          next = m === 0 ? submitQuizState(next) : { ...next, mockLeft: m };
+          const m = next.mockLeft - elapsedSeconds;
+          next = m <= 0 ? submitQuizState(next) : { ...next, mockLeft: m };
         }
         return next === s ? s : next;
       });

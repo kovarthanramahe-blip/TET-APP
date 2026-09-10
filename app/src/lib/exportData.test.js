@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { exportNotesCSV, exportTasksCSV, exportBackupJSON, parseBackupFile } from './exportData.js';
+import { exportNotesCSV, exportTasksCSV, exportBackupJSON, parseBackupFile, sanitizeImportedState } from './exportData.js';
 import { seedState, sanitizeForPersistence } from './logic.js';
 
 // jsdom doesn't implement URL.createObjectURL/revokeObjectURL -- stub them
@@ -135,5 +135,54 @@ describe('CSV export: formula-injection guard', () => {
     // Expect: prefixed with ', then the whole field quoted because of the
     // comma, with the embedded quote doubled per RFC 4180.
     expect(dataLine.startsWith('"\'=A,""B"""')).toBe(true);
+  });
+});
+
+// Security review finding (this phase): sanitizeImportedState() stores a
+// validated confidence/cards/answers map object AS-IS rather than a
+// rebuilt copy, so a "__proto__"/"constructor"/"prototype" own-key
+// (which JSON.parse produces as an ordinary data property, not the
+// accessor) used to survive validation intact as long as its value
+// matched that field's normal shape. Nothing in this codebase currently
+// copies these maps onto another object in a way that would trigger the
+// prototype-chain setter, but the fix rejects the whole field outright
+// rather than leaving that landmine for future code to step on.
+describe('sanitizeImportedState: rejects dangerous key names in map fields', () => {
+  // Built via JSON.parse of a literal JSON string (not a JS object
+  // literal) so "__proto__" comes out exactly as a real backup file would
+  // produce it: an ordinary own data property. A JS object-literal
+  // `{ __proto__: 2 }` is special-cased by the language to set the
+  // prototype instead of creating an own key at all, which would make
+  // these tests pass for the wrong reason (there'd be no "__proto__" own
+  // key for isSafeMap to even see).
+  it('drops confidence entirely if it carries a __proto__ key, without polluting Object.prototype', () => {
+    const raw = JSON.parse('{"confidence":{"__proto__":2,"Level 1 (PRT)|Mod|Topic":1}}');
+    const clean = sanitizeImportedState(raw);
+    expect(clean.confidence).toBeUndefined();
+    expect(({}).polluted).toBeUndefined();
+    expect(Object.getPrototypeOf({})).toBe(Object.prototype);
+  });
+
+  it('drops cards entirely if a card entry is keyed "constructor" or "prototype"', () => {
+    const cardShape = '{"ease":2.5,"interval":0,"reps":0,"due":0}';
+    const withConstructor = JSON.parse(`{"cards":{"constructor":${cardShape},"0":${cardShape}}}`);
+    const withPrototype = JSON.parse(`{"cards":{"prototype":${cardShape},"0":${cardShape}}}`);
+    expect(sanitizeImportedState(withConstructor).cards).toBeUndefined();
+    expect(sanitizeImportedState(withPrototype).cards).toBeUndefined();
+  });
+
+  it('drops answers entirely if it carries a __proto__ key', () => {
+    const raw = JSON.parse('{"answers":{"__proto__":"x","0":1}}');
+    const clean = sanitizeImportedState(raw);
+    expect(clean.answers).toBeUndefined();
+  });
+
+  it('still accepts an ordinary confidence/cards/answers map with no dangerous keys', () => {
+    const raw = {
+      confidence: { 'Level 1 (PRT)|Mod|Topic': 2 },
+      cards: { '0': { ease: 2.5, interval: 3, reps: 1, due: 10 } },
+      answers: { '0': 'a', '1': 2 }
+    };
+    expect(sanitizeImportedState(raw)).toEqual(raw);
   });
 });

@@ -131,16 +131,25 @@ function isArrayOfShape(v, itemIsValid) {
 }
 
 // Every key this validates against a plain object's OWN enumerable string
-// keys (Object.keys/Object.entries never surface "__proto__" as a regular
-// key coming from parsed JSON -- JSON.parse always produces it as an
-// ordinary data property, not an accessor -- so checking length/shape here
-// is sufficient; the actual pollution risk is in how the caller copies
-// these keys onto another object, guarded separately below).
+// keys. JSON.parse always produces "__proto__" as an ordinary data
+// property (never the accessor), so it isn't dangerous by itself here --
+// but sanitizeImportedState() below stores the validated object AS-IS
+// (not a rebuilt copy), so a "__proto__"/"constructor"/"prototype" key
+// would ride along into confidence/cards/answers untouched. Nothing in
+// this codebase currently copies those fields onto another object in a
+// way that would trigger the prototype-chain setter (no Object.assign or
+// for...in loop touches them), but that's a property of today's call
+// sites, not of this validator -- reject the whole map outright if one of
+// these names shows up, the same way any other malformed/untrusted shape
+// here is simply dropped, rather than leaving a live landmine for the
+// next bit of code that merges these maps.
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 function isSafeMap(v, valueIsValid) {
   if (!isPlainObject(v)) return false;
   const keys = Object.keys(v);
   if (keys.length > MAX_MAP_KEYS) return false;
-  return keys.every(k => isSafeString(k) && valueIsValid(v[k]));
+  return keys.every(k => isSafeString(k) && !DANGEROUS_KEYS.has(k) && valueIsValid(v[k]));
 }
 
 // Field-level validators for every top-level key seedState() defines.

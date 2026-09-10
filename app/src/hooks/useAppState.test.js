@@ -106,3 +106,44 @@ describe('useAppState: timer tick accounts for real elapsed time, not a fixed 1 
     expect(result.current.state.remaining).toBe(7);
   });
 });
+
+// Phase 35: saveState() (and the localStorage write underneath it) can
+// fail -- quota exceeded, private-browsing storage restrictions, etc. --
+// and used to fail completely silently, with nothing telling the user
+// their edits had stopped being persisted. `saveFailed` is the hook's own
+// signal for "did the last save actually work", read by StorageWarning.jsx.
+describe('useAppState: reports whether persistence is actually working', () => {
+  let originalSetItem;
+
+  beforeEach(() => {
+    localStorage.clear();
+    originalSetItem = Storage.prototype.setItem;
+  });
+
+  afterEach(() => {
+    Storage.prototype.setItem = originalSetItem;
+  });
+
+  it('stays false under normal conditions', () => {
+    const { result } = renderHook(() => useAppState());
+    expect(result.current.saveFailed).toBe(false);
+  });
+
+  it('becomes true when localStorage.setItem throws (e.g. quota exceeded)', () => {
+    Storage.prototype.setItem = () => { throw new DOMException('QuotaExceededError'); };
+    const { result } = renderHook(() => useAppState());
+    expect(result.current.saveFailed).toBe(true);
+  });
+
+  it('recovers to false once a subsequent save succeeds', () => {
+    Storage.prototype.setItem = () => { throw new DOMException('QuotaExceededError'); };
+    const { result } = renderHook(() => useAppState());
+    expect(result.current.saveFailed).toBe(true);
+
+    Storage.prototype.setItem = originalSetItem;
+    act(() => {
+      result.current.update({ theme: 'dark' });
+    });
+    expect(result.current.saveFailed).toBe(false);
+  });
+});

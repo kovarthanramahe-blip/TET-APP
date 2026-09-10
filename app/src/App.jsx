@@ -5,6 +5,7 @@ import Header from './components/Header.jsx';
 import QuoteBar from './components/QuoteBar.jsx';
 import MigrationBanner from './components/MigrationBanner.jsx';
 import PwaUpdateBanner from './components/PwaUpdateBanner.jsx';
+import StorageWarning from './components/StorageWarning.jsx';
 import { useStudyReminders } from './hooks/useStudyReminders.js';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 
@@ -107,6 +108,7 @@ function Shell() {
       </main>
       <MigrationBanner />
       <PwaUpdateBanner />
+      <StorageWarning />
     </div>
   );
 }

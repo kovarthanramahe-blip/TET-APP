@@ -8,11 +8,19 @@ import {
 
 export function useAppState() {
   const [state, setState] = useState(loadState);
+  // Phase 35: saveState() can fail (localStorage quota exceeded, private
+  // browsing's storage restrictions, etc.) -- it used to fail silently,
+  // with nothing in the UI ever telling the user their edits stopped
+  // being persisted. This is deliberately its own piece of state, not part
+  // of `state` itself: it describes whether saving state worked, so
+  // folding it into the very thing being saved would be circular, and it
+  // has no business surviving a reload anyway.
+  const [saveFailed, setSaveFailed] = useState(false);
 
   // persist on every change (mirrors componentDidUpdate -> save())
   useEffect(() => {
     document.documentElement.dataset.theme = state.theme;
-    saveState(state);
+    setSaveFailed(!saveState(state));
   }, [state]);
 
   // 1s tick: pomodoro/stopwatch countdown + mock exam clock.
@@ -174,5 +182,5 @@ export function useAppState() {
     })
   });
 
-  return { state, update, actions: actions.current };
+  return { state, update, actions: actions.current, saveFailed };
 }

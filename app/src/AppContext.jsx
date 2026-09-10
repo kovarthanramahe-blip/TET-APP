@@ -166,8 +166,9 @@ export function AppProvider({ children }) {
     actions: cloudActive
       ? { ...base.actions, ...cloud.actions, ...cloudConfidence.actions, ...cloudCustomCards.actions, ...cloudCustomTopics.actions }
       : base.actions,
-    migration: { ...migration, cloudError, clearCloudError }
-  }), [base.state, base.update, base.actions, cloud.tasks, cloud.notes, cloud.actions, cloudSessions.sessions, cloudConfidence.confidence, cloudConfidence.actions, cloudQuizAttempts.attempts, cloudCustomCards.customCards, cloudCustomCards.actions, cloudCustomTopics.customTopics, cloudCustomTopics.actions, cloudActive, migration, cloudError]);
+    migration: { ...migration, cloudError, clearCloudError },
+    saveFailed: base.saveFailed
+  }), [base.state, base.update, base.actions, base.saveFailed, cloud.tasks, cloud.notes, cloud.actions, cloudSessions.sessions, cloudConfidence.confidence, cloudConfidence.actions, cloudQuizAttempts.attempts, cloudCustomCards.customCards, cloudCustomCards.actions, cloudCustomTopics.customTopics, cloudCustomTopics.actions, cloudActive, migration, cloudError]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

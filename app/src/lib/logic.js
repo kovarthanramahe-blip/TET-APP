@@ -73,8 +73,14 @@ export function sanitizeForPersistence(state) {
   });
 }
 
+// Returns whether the write actually succeeded -- writeStoredState()
+// already swallows the real error (quota exceeded, private-browsing
+// storage restrictions, etc.) so the app never crashes over it, but a
+// caller that silently discards this return value has no way to know
+// persistence just stopped working. See useAppState.js's persistence
+// effect for where this return value is actually used.
 export function saveState(state) {
-  writeStoredState(sanitizeForPersistence(state));
+  return writeStoredState(sanitizeForPersistence(state));
 }
 
 export function focusMins(s) { return Math.max(1, Number(s.pomodoroMinutes ?? 25)); }

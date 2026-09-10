@@ -5,7 +5,7 @@
 // already expect from useAppState.js) and the real Supabase column names, so
 // nothing above this file needs to know the two shapes differ.
 
-import { supabase } from './supabaseClient.js';
+import { getSupabaseClient } from './supabaseClient.js';
 import { CARDS } from '../data/flashcards.js';
 import { today, dayIndex } from './dates.js';
 import { isCorrect, topicKey } from './logic.js';
@@ -39,6 +39,7 @@ function sessionFromRow(row, topicIdToKey) {
 }
 
 export async function fetchTasks(userId) {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase.from('tasks').select('*').eq('user_id', userId).order('created_at', { ascending: false });
   assertNoError('fetching tasks', error);
   return (data || []).map(taskFromRow);
@@ -50,12 +51,14 @@ export async function fetchTasks(userId) {
 // cloudAddNote/cloudUpdateNote, so it fetches both once per activation
 // rather than this function re-fetching reference data on its own.
 export async function fetchNotes(userId, topicIdToKey) {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase.from('notes').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
   assertNoError('fetching notes', error);
   return (data || []).map(row => noteFromRow(row, topicIdToKey));
 }
 
 export async function cloudAddTask(userId, { title, priority, due }) {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase
     .from('tasks')
     .insert({ user_id: userId, title, priority, due_date: due ? due : null, done: false })
@@ -66,6 +69,7 @@ export async function cloudAddTask(userId, { title, priority, due }) {
 }
 
 export async function cloudUpdateTask(userId, id, patch) {
+  const supabase = await getSupabaseClient();
   const dbPatch = {};
   if ('title' in patch) dbPatch.title = patch.title;
   if ('priority' in patch) dbPatch.priority = patch.priority;
@@ -83,6 +87,7 @@ export async function cloudUpdateTask(userId, id, patch) {
 }
 
 export async function cloudDeleteTask(userId, id) {
+  const supabase = await getSupabaseClient();
   const { error } = await supabase.from('tasks').delete().eq('id', id).eq('user_id', userId);
   assertNoError('deleting task', error);
 }
@@ -92,6 +97,7 @@ export async function cloudDeleteTask(userId, id) {
 // done flag changes), unlike the delete-all treatment used for
 // sessions/attempts/confidence in steps 2-3.
 export async function cloudResetAllTasksDone(userId) {
+  const supabase = await getSupabaseClient();
   const { error } = await supabase.from('tasks').update({ done: false }).eq('user_id', userId);
   assertNoError('resetting task done flags', error);
 }
@@ -103,6 +109,7 @@ export async function cloudResetAllTasksDone(userId) {
 // from, so a miss here means something is actually wrong, not just stale
 // reference data on an old row.
 export async function cloudAddNote(userId, keyToTopicId, { title, topic, topicId, body }) {
+  const supabase = await getSupabaseClient();
   const resolvedTopicId = topicId ? keyToTopicId.get(topicId) : null;
   if (topicId && !resolvedTopicId) throw new Error(`[cloudData] unknown topic for note link "${topicId}"`);
   const { data, error } = await supabase
@@ -115,6 +122,7 @@ export async function cloudAddNote(userId, keyToTopicId, { title, topic, topicId
 }
 
 export async function cloudUpdateNote(userId, keyToTopicId, id, patch) {
+  const supabase = await getSupabaseClient();
   const dbPatch = { updated_at: new Date().toISOString() };
   if ('title' in patch) dbPatch.title = patch.title;
   if ('topic' in patch) dbPatch.topic_label = patch.topic || null;
@@ -137,6 +145,7 @@ export async function cloudUpdateNote(userId, keyToTopicId, id, patch) {
 }
 
 export async function cloudDeleteNote(userId, id) {
+  const supabase = await getSupabaseClient();
   const { error } = await supabase.from('notes').delete().eq('id', id).eq('user_id', userId);
   assertNoError('deleting note', error);
 }
@@ -145,6 +154,7 @@ export async function cloudDeleteNote(userId, id) {
 // fetchTopicKeyMaps()) and pass in -- same shared-reference-data approach
 // useCloudTasksAndNotes.js uses for notes.
 export async function fetchStudySessions(userId, topicIdToKey) {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase
     .from('study_sessions')
     .select('*')
@@ -164,6 +174,7 @@ export async function fetchStudySessions(userId, topicIdToKey) {
 // topic picker only ever offers keys built from the same live syllabus data
 // the map was built from.
 export async function cloudAddStudySession(userId, keyToTopicId, { label, mins, date, topicId }) {
+  const supabase = await getSupabaseClient();
   const resolvedTopicId = topicId ? keyToTopicId.get(topicId) : null;
   if (topicId && !resolvedTopicId) throw new Error(`[cloudData] unknown topic for session link "${topicId}"`);
   const { error } = await supabase.from('study_sessions').insert({
@@ -186,6 +197,7 @@ export async function cloudAddStudySession(userId, keyToTopicId, { label, mins, 
 // [] -- the same delete-all-rows treatment already used for flashcard SRS
 // state (Step 4) when its local state clears to {}.
 export async function cloudDeleteAllStudySessions(userId) {
+  const supabase = await getSupabaseClient();
   const { error } = await supabase.from('study_sessions').delete().eq('user_id', userId);
   assertNoError('resetting study sessions', error);
 }
@@ -203,6 +215,7 @@ export async function cloudDeleteAllStudySessions(userId) {
 // that file is reviewed, tested and left alone per Phase 3D, so it keeps
 // its own independent copy rather than importing this one.
 export async function fetchTopicKeyMaps() {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase
     .from('topics')
     .select('id, name, modules ( name, courses ( title ) )');
@@ -230,6 +243,7 @@ export async function fetchTopicKeyMaps() {
 // the shared seeded syllabus; see the migration's design note), so it's
 // left completely untouched.
 export async function fetchCustomTopics(userId) {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase
     .from('custom_topics')
     .select('id, level, module_name, name, description')
@@ -241,6 +255,7 @@ export async function fetchCustomTopics(userId) {
 }
 
 export async function cloudAddCustomTopic(userId, { level, moduleName, name, desc }) {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase
     .from('custom_topics')
     .insert({ user_id: userId, level, module_name: moduleName, name, description: desc || null })
@@ -255,6 +270,7 @@ export async function cloudAddCustomTopic(userId, { level, moduleName, name, des
 // matching confidence mark, if any, is deleted here explicitly first,
 // mirroring what an FK ON DELETE CASCADE would otherwise have done.
 export async function cloudDeleteCustomTopic(userId, id) {
+  const supabase = await getSupabaseClient();
   const { error: confError } = await supabase.from('topic_confidence').delete().eq('user_id', userId).eq('topic_id', id);
   assertNoError('deleting the custom topic\'s confidence mark', confError);
   const { error } = await supabase.from('custom_topics').delete().eq('user_id', userId).eq('id', id);
@@ -270,6 +286,7 @@ export async function cloudDeleteCustomTopic(userId, id) {
 // cloudSetTopicConfidence() and cycleConfidence() work identically for a
 // custom topic's key as for a seeded one, with no separate code path.
 export async function fetchTopicConfidence(userId) {
+  const supabase = await getSupabaseClient();
   const { keyToTopicId, topicIdToKey } = await fetchTopicKeyMaps();
   const customTopics = await fetchCustomTopics(userId);
   for (const t of customTopics) {
@@ -299,6 +316,7 @@ export async function fetchTopicConfidence(userId) {
 }
 
 export async function cloudSetTopicConfidence(userId, keyToTopicId, key, level) {
+  const supabase = await getSupabaseClient();
   const topicId = keyToTopicId.get(key);
   if (!topicId) throw new Error(`[cloudData] unknown topic for confidence key "${key}"`);
   const { error } = await supabase
@@ -311,6 +329,7 @@ export async function cloudSetTopicConfidence(userId, keyToTopicId, key, level) 
 // {} -- the same delete-all-rows treatment already used for study sessions
 // and quiz attempts (step 2) and flashcard SRS state (Phase 3E step 4).
 export async function cloudDeleteAllTopicConfidence(userId) {
+  const supabase = await getSupabaseClient();
   const { error } = await supabase.from('topic_confidence').delete().eq('user_id', userId);
   assertNoError('resetting topic confidence', error);
 }
@@ -322,6 +341,7 @@ export async function cloudDeleteAllTopicConfidence(userId) {
 // that file's own rule we never assume UUID ordering either) -- duplicated
 // here rather than touching that reviewed, tested, left-alone file.
 async function fetchFlashcardIndexMaps() {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase.from('flashcards').select('id, front');
   assertNoError('fetching flashcards for SRS index mapping', error);
   if (!data || data.length !== CARDS.length) {
@@ -356,6 +376,7 @@ function dateStringFromDayIndex(targetIndex) {
 // overridden) and the indexToId map needed by later cloudSetFlashcardSrs()
 // calls.
 export async function fetchFlashcardSrs(userId) {
+  const supabase = await getSupabaseClient();
   const { indexToId, idToIndex } = await fetchFlashcardIndexMaps();
   const { data, error } = await supabase
     .from('flashcard_srs_state')
@@ -378,6 +399,7 @@ export async function fetchFlashcardSrs(userId) {
 }
 
 export async function cloudSetFlashcardSrs(userId, indexToId, index, entry) {
+  const supabase = await getSupabaseClient();
   const cardId = indexToId.get(index);
   if (!cardId) throw new Error(`[cloudData] unknown flashcard for index ${index}`);
   const { error } = await supabase.from('flashcard_srs_state').upsert({
@@ -397,6 +419,7 @@ export async function cloudSetFlashcardSrs(userId, indexToId, index, entry) {
 // cardState()'s local semantics where an absent entry means "never
 // reviewed, default ease/interval/reps, due now."
 export async function cloudDeleteAllFlashcardSrs(userId) {
+  const supabase = await getSupabaseClient();
   const { error } = await supabase.from('flashcard_srs_state').delete().eq('user_id', userId);
   assertNoError('resetting flashcard SRS state', error);
 }
@@ -427,6 +450,7 @@ function customCardFromRow(row, topicIdToKey) {
 // fetchTopicKeyMaps()) and pass in -- same shared-reference-data approach
 // used for notes/study_sessions.
 export async function fetchCustomCards(userId, topicIdToKey) {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase
     .from('custom_flashcards')
     .select('*')
@@ -445,6 +469,7 @@ export async function fetchCustomCards(userId, topicIdToKey) {
 // default already matches "due today", so only the row's real id/fields
 // need echoing back into the local shape.
 export async function cloudAddCustomCard(userId, keyToTopicId, { front, back, category, topicId }) {
+  const supabase = await getSupabaseClient();
   const resolvedTopicId = topicId ? keyToTopicId.get(topicId) : null;
   if (topicId && !resolvedTopicId) throw new Error(`[cloudData] unknown topic for custom flashcard link "${topicId}"`);
   const { data, error } = await supabase
@@ -465,6 +490,7 @@ export async function cloudAddCustomCard(userId, keyToTopicId, { front, back, ca
 // a card's text can never race with or clobber a review grade landing at
 // the same time, and vice versa.
 export async function cloudUpdateCustomCard(userId, keyToTopicId, id, patch) {
+  const supabase = await getSupabaseClient();
   const dbPatch = { updated_at: new Date().toISOString() };
   if ('front' in patch) dbPatch.front = patch.front;
   if ('back' in patch) dbPatch.back = patch.back;
@@ -489,6 +515,7 @@ export async function cloudUpdateCustomCard(userId, keyToTopicId, id, patch) {
 // integer, same as cardState()'s shape, converted to a real date the same
 // way cloudSetFlashcardSrs() does for the seeded deck.
 export async function cloudGradeCustomCard(userId, id, { ease, interval, reps, due }) {
+  const supabase = await getSupabaseClient();
   const { error } = await supabase
     .from('custom_flashcards')
     .update({
@@ -501,6 +528,7 @@ export async function cloudGradeCustomCard(userId, id, { ease, interval, reps, d
 }
 
 export async function cloudDeleteCustomCard(userId, id) {
+  const supabase = await getSupabaseClient();
   const { error } = await supabase.from('custom_flashcards').delete().eq('id', id).eq('user_id', userId);
   assertNoError('deleting custom flashcard', error);
 }
@@ -515,12 +543,14 @@ export async function cloudDeleteCustomCard(userId, id) {
 // cloudUpdateProfileSettings's LOCAL_TO_COLUMN map) so the two hooks never
 // share a write path to the same table.
 export async function fetchReviews(userId) {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase.from('profiles').select('reviews').eq('id', userId).single();
   assertNoError('fetching reviews', error);
   return data.reviews;
 }
 
 export async function cloudSetReviews(userId, reviews) {
+  const supabase = await getSupabaseClient();
   const { error } = await supabase.from('profiles').update({ reviews }).eq('id', userId);
   assertNoError('updating reviews', error);
 }
@@ -531,6 +561,7 @@ export async function cloudSetReviews(userId, reviews) {
 // question identity was never part of the local `attempts` shape, only
 // added now that live submissions can capture it).
 async function fetchQuizQuestionMap() {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase.from('quiz_questions').select('id, part, question_text');
   assertNoError('fetching quiz questions for attempt mapping', error);
   const map = new Map();
@@ -549,6 +580,7 @@ function attemptFromRow(row) {
 }
 
 export async function fetchQuizAttempts(userId) {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase
     .from('quiz_attempts')
     .select('*')
@@ -566,6 +598,7 @@ export async function fetchQuizAttempts(userId) {
 // quiz_attempt_answers empty -- a live submission has everything needed to
 // fill it in properly.
 export async function cloudAddQuizAttempt(userId, { mode, correct, total, pct, quiz, answers }) {
+  const supabase = await getSupabaseClient();
   const questionMap = await fetchQuizQuestionMap();
   const questionIds = quiz.map(q => {
     const id = questionMap.get(`${q.part}|${q.q}`);
@@ -607,6 +640,7 @@ export async function cloudAddQuizAttempt(userId, { mode, correct, total, pct, q
 // ownership-FK fix), so this single delete also removes every matching
 // answer row without a separate call.
 export async function cloudDeleteAllQuizAttempts(userId) {
+  const supabase = await getSupabaseClient();
   const { error } = await supabase.from('quiz_attempts').delete().eq('user_id', userId);
   assertNoError('resetting quiz attempts', error);
 }
@@ -620,6 +654,7 @@ export async function cloudDeleteAllQuizAttempts(userId) {
 // per-part accuracy breakdown for "strongest/weakest syllabus areas" --
 // no new table, no new write path, nothing else in the app calls this.
 export async function fetchQuizPerformanceByPart(userId) {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase
     .from('quiz_attempt_answers')
     .select('is_correct, quiz_questions ( part )')
@@ -673,6 +708,7 @@ function settingsFromRow(row) {
 }
 
 export async function fetchProfileSettings(userId) {
+  const supabase = await getSupabaseClient();
   const { data, error } = await supabase
     .from('profiles')
     .select('theme, exam_level, pomodoro_minutes, break_minutes, show_quotes, exam_date, daily_goal_minutes')
@@ -683,6 +719,7 @@ export async function fetchProfileSettings(userId) {
 }
 
 export async function cloudUpdateProfileSettings(userId, patch) {
+  const supabase = await getSupabaseClient();
   const dbPatch = {};
   for (const key of Object.keys(patch)) {
     const column = LOCAL_TO_COLUMN[key];
@@ -701,6 +738,7 @@ export async function cloudUpdateProfileSettings(userId, patch) {
 // the function is hard-gated to auth.uid() (no id parameter exists to
 // pass), so this can only ever delete the caller's own account.
 export async function deleteOwnAccount() {
+  const supabase = await getSupabaseClient();
   const { error } = await supabase.rpc('delete_own_account');
   assertNoError('deleting account', error);
 }

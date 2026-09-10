@@ -12,7 +12,7 @@
 // policies, so nothing here can read or write another user's data, and
 // nothing here uses or needs a service-role key.
 
-import { supabase } from './supabaseClient.js';
+import { getSupabaseClient } from './supabaseClient.js';
 import { readStoredState } from './dataStore.js';
 import { CARDS } from '../data/flashcards.js';
 import { dayIndex, today } from './dates.js';
@@ -72,6 +72,7 @@ function assertNoError(context, error) {
 // or in smaller chunks, this existence check would no longer be sufficient
 // on its own.
 async function tableAlreadyHasRows(table, userId) {
+  const supabase = await getSupabaseClient();
   const { count, error } = await supabase
     .from(table)
     .select('*', { count: 'exact', head: true })
@@ -89,6 +90,7 @@ async function tableAlreadyHasRows(table, userId) {
  * @returns {Promise<{ status: 'already_migrated' | 'migrated', migratedAt: string }>}
  */
 export async function migrateLocalStorageToSupabase(user) {
+  const supabase = await getSupabaseClient();
   if (!user || !user.id) {
     throw new Error('[migrateToSupabase] a signed-in user is required');
   }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js';
 
 // Authentication only. Independent of useAppState.js — study data stays in
 // localStorage untouched; this hook just tracks who (if anyone) is signed in.
@@ -11,27 +11,37 @@ export function useAuth() {
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     let active = true;
+    let unsubscribe = () => {};
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (active) {
-        setSession(data.session);
-        setLoading(false);
-      }
-    });
+    getSupabaseClient().then(supabase => {
+      if (!active) return;
+      supabase.auth.getSession().then(({ data }) => {
+        if (active) {
+          setSession(data.session);
+          setLoading(false);
+        }
+      });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+        setSession(newSession);
+      });
+      unsubscribe = () => listener.subscription.unsubscribe();
+      // The effect may have been torn down while the import above was still
+      // in flight -- subscribing after that would leak the listener forever
+      // since the cleanup below already ran and can't call this unsubscribe.
+      if (!active) unsubscribe();
     });
 
     return () => {
       active = false;
-      listener.subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
     if (!isSupabaseConfigured) return;
     setNotice('');
+    const supabase = await getSupabaseClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin }
@@ -42,6 +52,7 @@ export function useAuth() {
   const sendMagicLink = useCallback(async (email) => {
     if (!isSupabaseConfigured || !email) return;
     setNotice('Sending link…');
+    const supabase = await getSupabaseClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: window.location.origin }
@@ -52,6 +63,7 @@ export function useAuth() {
   const signOut = useCallback(async () => {
     if (!isSupabaseConfigured) return;
     setNotice('');
+    const supabase = await getSupabaseClient();
     await supabase.auth.signOut();
   }, []);
 

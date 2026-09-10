@@ -40,6 +40,21 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // Phase 26: React/ReactDOM change far less often than the app's own
+        // code, so splitting them into their own chunk lets browsers reuse
+        // a cached copy across deploys that only touch app code. Supabase
+        // isn't listed here -- it's now loaded via a dynamic import() (see
+        // supabaseClient.js), which Rollup already splits into its own
+        // chunk automatically, fetched only when actually needed.
+        manualChunks: {
+          react: ['react', 'react-dom']
+        }
+      }
+    }
+  },
   server: {
     host: true
   },

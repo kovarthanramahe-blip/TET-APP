@@ -34,33 +34,41 @@ export default function Notes() {
       <div>
         <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 'var(--space-3)' }}>
           <div className="field" style={{ flex: '2 1 200px' }}>
-            <label>Title</label>
-            <input className="input" type="text" value={note.title} onChange={e => actions.updateNote(note.id, { title: e.target.value })} />
+            <label>
+              Title
+              <input className="input" type="text" value={note.title} onChange={e => actions.updateNote(note.id, { title: e.target.value })} />
+            </label>
           </div>
           <div className="field" style={{ flex: '1 1 200px' }}>
-            <label>Link to topic</label>
-            <select className="input" value={note.topicId || ''} onChange={e => pickTopic(e.target.value)}>
-              <option value="">— Not linked —</option>
-              {modulesFor(s).map(m => (
-                <optgroup key={m.name} label={m.name}>
-                  {m.topics.map(t => (
-                    <option key={t[0]} value={topicKey(s.level, m.name, t[0])}>{t[0]}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+            <label>
+              Link to topic
+              <select className="input" value={note.topicId || ''} onChange={e => pickTopic(e.target.value)}>
+                <option value="">— Not linked —</option>
+                {modulesFor(s).map(m => (
+                  <optgroup key={m.name} label={m.name}>
+                    {m.topics.map(t => (
+                      <option key={t[0]} value={topicKey(s.level, m.name, t[0])}>{t[0]}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
           </div>
           <div className="field" style={{ flex: '1 1 180px' }}>
-            <label>Attached to</label>
-            <input className="input" type="text" value={note.topic} onChange={e => actions.updateNote(note.id, { topic: e.target.value })} placeholder="Course · module · topic" />
+            <label>
+              Attached to
+              <input className="input" type="text" value={note.topic} onChange={e => actions.updateNote(note.id, { topic: e.target.value })} placeholder="Course · module · topic" />
+            </label>
           </div>
           <button type="button" className="btn btn-secondary" onClick={() => actions.deleteNote(note.id)}>Delete</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 'var(--space-4)' }}>
           <div className="field">
-            <label>Markdown</label>
-            <textarea className="input" value={note.body} onChange={e => actions.updateNote(note.id, { body: e.target.value })}
-              style={{ minHeight: '340px', fontSize: '13px', lineHeight: 1.6 }}></textarea>
+            <label>
+              Markdown
+              <textarea className="input" value={note.body} onChange={e => actions.updateNote(note.id, { body: e.target.value })}
+                style={{ minHeight: '340px', fontSize: '13px', lineHeight: 1.6 }}></textarea>
+            </label>
           </div>
           <div className="field">
             <label>Preview</label>

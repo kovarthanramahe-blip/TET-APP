@@ -1,6 +1,14 @@
-import { afterEach } from 'vitest';
+import { afterEach, expect } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { toHaveNoViolations } from 'jest-axe';
 import '@testing-library/jest-dom/vitest';
+
+// jest-axe's matcher is jest-style but framework-agnostic underneath --
+// Vitest's expect.extend() is jest-compatible, so it registers the same
+// way it would in a real Jest project. Global so any test file can just
+// call expect(await axe(container)).toHaveNoViolations() without its own
+// per-file setup.
+expect.extend(toHaveNoViolations);
 
 // Vitest's `globals` mode is off (test files import describe/it/etc.
 // explicitly), so React Testing Library's own auto-cleanup -- which only

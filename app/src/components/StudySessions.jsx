@@ -31,17 +31,19 @@ export default function StudySessions() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
       <div className="card" style={{ padding: 'var(--space-4) var(--space-6)', display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
         <div className="field" style={{ flex: '1 1 260px', margin: 0 }}>
-          <label>Currently studying</label>
-          <select className="input" value={s.sessionTopicId || ''} onChange={e => actions.setSessionTopic(e.target.value)}>
-            <option value="">— Not linked —</option>
-            {modulesFor(s).map(m => (
-              <optgroup key={m.name} label={m.name}>
-                {m.topics.map(t => (
-                  <option key={t[0]} value={topicKey(s.level, m.name, t[0])}>{t[0]}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+          <label>
+            Currently studying
+            <select className="input" value={s.sessionTopicId || ''} onChange={e => actions.setSessionTopic(e.target.value)}>
+              <option value="">— Not linked —</option>
+              {modulesFor(s).map(m => (
+                <optgroup key={m.name} label={m.name}>
+                  {m.topics.map(t => (
+                    <option key={t[0]} value={topicKey(s.level, m.name, t[0])}>{t[0]}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
         </div>
         <p style={{ fontSize: '12px', opacity: .65, margin: 0, flex: '2 1 260px' }}>
           Applies to the timer below and to sessions you log by hand, so time studied can be broken down by topic on the dashboard.
@@ -73,14 +75,18 @@ export default function StudySessions() {
         <hr className="hr" style={{ margin: 'var(--space-6) 0 var(--space-4)' }} />
         <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="field" style={{ width: '100px' }}>
-            <label>Focus min</label>
-            <input className="input" type="number" min={5} max={60} value={s.pomodoroMinutes}
-              onChange={e => actions.setPomodoroMinutes(Math.min(60, Math.max(5, Number(e.target.value) || 5)))} />
+            <label>
+              Focus min
+              <input className="input" type="number" min={5} max={60} value={s.pomodoroMinutes}
+                onChange={e => actions.setPomodoroMinutes(Math.min(60, Math.max(5, Number(e.target.value) || 5)))} />
+            </label>
           </div>
           <div className="field" style={{ width: '100px' }}>
-            <label>Break min</label>
-            <input className="input" type="number" min={2} max={20} value={s.breakMinutes}
-              onChange={e => actions.setBreakMinutes(Math.min(20, Math.max(2, Number(e.target.value) || 2)))} />
+            <label>
+              Break min
+              <input className="input" type="number" min={2} max={20} value={s.breakMinutes}
+                onChange={e => actions.setBreakMinutes(Math.min(20, Math.max(2, Number(e.target.value) || 2)))} />
+            </label>
           </div>
           <button type="button" aria-pressed={s.showQuotes ?? true} style={chip(s.showQuotes ?? true, false)} onClick={() => actions.setShowQuotes(!(s.showQuotes ?? true))}>
             Quotes {(s.showQuotes ?? true) ? 'on' : 'off'}
@@ -94,12 +100,16 @@ export default function StudySessions() {
           <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
           <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div className="field" style={{ flex: '2 1 160px' }}>
-              <label>What did you study?</label>
-              <input className="input" type="text" value={s.logLabel} onChange={e => actions.setLogLabel(e.target.value)} placeholder="e.g. Piaget's stages" />
+              <label>
+                What did you study?
+                <input className="input" type="text" value={s.logLabel} onChange={e => actions.setLogLabel(e.target.value)} placeholder="e.g. Piaget's stages" />
+              </label>
             </div>
             <div className="field" style={{ flex: '0 1 100px' }}>
-              <label>Minutes</label>
-              <input className="input" type="number" value={s.logMinutes} onChange={e => actions.setLogMinutes(e.target.value)} />
+              <label>
+                Minutes
+                <input className="input" type="number" value={s.logMinutes} onChange={e => actions.setLogMinutes(e.target.value)} />
+              </label>
             </div>
             <button type="button" className="btn btn-primary" onClick={actions.addManualLog}>Add</button>
           </div>

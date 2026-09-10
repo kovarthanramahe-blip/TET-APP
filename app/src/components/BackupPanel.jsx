@@ -84,12 +84,20 @@ export default function BackupPanel() {
           style={{ fontSize: '12px', padding: '5px 9px', width: '100%', marginTop: '6px', display: 'block', textAlign: 'center', cursor: 'pointer' }}
         >
           Restore from backup
-          <input type="file" accept="application/json" onChange={handleFile} style={{ display: 'none' }} />
+          {/* Visually hidden, not display:none -- display:none removes an
+              element from the tab order entirely, making this whole control
+              unreachable by keyboard even though the wrapping <label> looks
+              clickable. This keeps the native input focusable/operable
+              (Enter/Space opens the file picker) while staying invisible. */}
+          <input
+            type="file" accept="application/json" onChange={handleFile}
+            style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}
+          />
         </label>
       )}
 
       {confirming && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }} role="alert">
           <p style={{ fontSize: '11px', color: '#b3392f', margin: 0, lineHeight: 1.4 }}>
             This replaces everything currently on this device — sessions, tasks, notes, confidence marks, flashcards, and settings — with the contents of the backup file. This cannot be undone.
           </p>
@@ -109,8 +117,8 @@ export default function BackupPanel() {
         </div>
       )}
 
-      {error && <p style={{ fontSize: '11px', color: '#b3392f', margin: 'var(--space-2) 0 0' }}>{error}</p>}
-      {restored && <p style={{ fontSize: '11px', opacity: .7, margin: 'var(--space-2) 0 0' }}>Backup restored.</p>}
+      {error && <p role="alert" style={{ fontSize: '11px', color: '#b3392f', margin: 'var(--space-2) 0 0' }}>{error}</p>}
+      {restored && <p role="status" style={{ fontSize: '11px', opacity: .7, margin: 'var(--space-2) 0 0' }}>Backup restored.</p>}
     </div>
   );
 }

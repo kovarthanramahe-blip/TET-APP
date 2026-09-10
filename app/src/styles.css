@@ -140,8 +140,15 @@ figcaption {
 .btn-icon { width: 36px; height: 36px; padding: 0; }
 .btn-block { width: 100%; margin-top: var(--space-2); }
 
+/* Phase 24: label wraps its control (implicit <label> association) rather
+   than sitting beside it as an unrelated sibling -- the only way a screen
+   reader reliably knows which control a label's text belongs to, short of
+   giving every instance (including ones in dynamically-rendered lists) a
+   unique id/htmlFor pair. flex + gap (instead of block + margin-bottom)
+   keeps the same visual gap between the label text and its control now
+   that the control is a child of the label, not a following sibling. */
 .field > label {
-  display: block; font-size: 12px; margin-bottom: 5px;
+  display: flex; flex-direction: column; gap: 5px; font-size: 12px;
   color: color-mix(in srgb, var(--color-text) 70%, transparent);
 }
 .input {

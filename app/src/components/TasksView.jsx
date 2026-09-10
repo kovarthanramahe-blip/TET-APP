@@ -13,12 +13,16 @@ export default function TasksView() {
     <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
       <div className="card" style={{ padding: 'var(--space-4) var(--space-6)', display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div className="field" style={{ flex: '3 1 220px' }}>
-          <label>New task</label>
-          <input className="input" type="text" value={s.taskDraft} onChange={e => actions.setTaskDraft(e.target.value)} placeholder="Revise Kohlberg's moral stages" />
+          <label>
+            New task
+            <input className="input" type="text" value={s.taskDraft} onChange={e => actions.setTaskDraft(e.target.value)} placeholder="Revise Kohlberg's moral stages" />
+          </label>
         </div>
         <div className="field" style={{ flex: '1 1 140px' }}>
-          <label>Deadline</label>
-          <input className="input" type="date" value={s.taskDue} onChange={e => actions.setTaskDue(e.target.value)} />
+          <label>
+            Deadline
+            <input className="input" type="date" value={s.taskDue} onChange={e => actions.setTaskDue(e.target.value)} />
+          </label>
         </div>
         <div className="field" style={{ flex: '1 1 130px' }}>
           <label>Priority</label>

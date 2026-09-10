@@ -164,12 +164,16 @@ export default function Dashboard() {
           <h4 style={{ margin: 0 }}>Study goal</h4>
           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div className="field" style={{ margin: 0 }}>
-              <label>Exam date</label>
-              <input className="input" type="date" value={s.examDate || ''} onChange={e => actions.setExamDate(e.target.value)} />
+              <label>
+                Exam date
+                <input className="input" type="date" value={s.examDate || ''} onChange={e => actions.setExamDate(e.target.value)} />
+              </label>
             </div>
             <div className="field" style={{ margin: 0, width: '110px' }}>
-              <label>Daily goal (min)</label>
-              <input className="input" type="number" min={5} value={s.dailyGoalMinutes} onChange={e => actions.setDailyGoalMinutes(Math.max(5, Number(e.target.value) || 5))} />
+              <label>
+                Daily goal (min)
+                <input className="input" type="number" min={5} value={s.dailyGoalMinutes} onChange={e => actions.setDailyGoalMinutes(Math.max(5, Number(e.target.value) || 5))} />
+              </label>
             </div>
           </div>
         </div>

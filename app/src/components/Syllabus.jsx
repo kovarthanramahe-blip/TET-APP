@@ -108,23 +108,29 @@ export default function Syllabus() {
         </p>
         <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="field" style={{ flex: '1 1 200px' }}>
-            <label>Module</label>
-            <input
-              className="input" type="text" list="syllabus-module-names"
-              value={s.customTopicModule} onChange={e => actions.setCustomTopicModule(e.target.value)}
-              placeholder="e.g. Child Development & Pedagogy"
-            />
-            <datalist id="syllabus-module-names">
-              {moduleNames.map(name => <option key={name} value={name} />)}
-            </datalist>
+            <label>
+              Module
+              <input
+                className="input" type="text" list="syllabus-module-names"
+                value={s.customTopicModule} onChange={e => actions.setCustomTopicModule(e.target.value)}
+                placeholder="e.g. Child Development & Pedagogy"
+              />
+              <datalist id="syllabus-module-names">
+                {moduleNames.map(name => <option key={name} value={name} />)}
+              </datalist>
+            </label>
           </div>
           <div className="field" style={{ flex: '1 1 200px' }}>
-            <label>Topic</label>
-            <input className="input" type="text" value={s.customTopicName} onChange={e => actions.setCustomTopicName(e.target.value)} placeholder="Topic name" />
+            <label>
+              Topic
+              <input className="input" type="text" value={s.customTopicName} onChange={e => actions.setCustomTopicName(e.target.value)} placeholder="Topic name" />
+            </label>
           </div>
           <div className="field" style={{ flex: '2 1 240px' }}>
-            <label>Description (optional)</label>
-            <input className="input" type="text" value={s.customTopicDesc} onChange={e => actions.setCustomTopicDesc(e.target.value)} placeholder="What this covers" />
+            <label>
+              Description (optional)
+              <input className="input" type="text" value={s.customTopicDesc} onChange={e => actions.setCustomTopicDesc(e.target.value)} placeholder="What this covers" />
+            </label>
           </div>
           <button type="button" className="btn btn-primary" onClick={actions.addCustomTopic}>Add topic</button>
         </div>

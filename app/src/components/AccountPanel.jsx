@@ -63,7 +63,7 @@ export default function AccountPanel() {
               </button>
             )}
             {confirmingDelete && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }} role="alert">
                 <p style={{ fontSize: '11px', color: '#b3392f', margin: 0, lineHeight: 1.4 }}>
                   This permanently deletes your account and every task, note, session, test attempt, flashcard, and setting stored for it. This cannot be undone.
                 </p>

@@ -36,7 +36,7 @@ const VIEW_COMPONENTS = {
 
 function ViewFallback() {
   return (
-    <div style={{ padding: 'var(--space-8)', textAlign: 'center', opacity: .6, fontSize: '13px' }}>
+    <div role="status" style={{ padding: 'var(--space-8)', textAlign: 'center', opacity: .6, fontSize: '13px' }}>
       Loading…
     </div>
   );

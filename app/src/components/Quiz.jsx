@@ -166,9 +166,11 @@ function QuizActive({ s, actions }) {
         )}
         {q && (q.type === 'fib' || q.type === 'sa') && (
           <div className="field" style={{ maxWidth: '520px' }}>
-            <label>{q.type === 'fib' ? 'Fill the blank' : 'Your answer'}</label>
-            <textarea className="input" value={ans === undefined ? '' : String(ans)}
-              onChange={e => actions.setTextAnswer(s.qIndex, e.target.value)} placeholder="Type your answer"></textarea>
+            <label>
+              {q.type === 'fib' ? 'Fill the blank' : 'Your answer'}
+              <textarea className="input" value={ans === undefined ? '' : String(ans)}
+                onChange={e => actions.setTextAnswer(s.qIndex, e.target.value)} placeholder="Type your answer"></textarea>
+            </label>
           </div>
         )}
 

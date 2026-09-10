@@ -179,30 +179,38 @@ export default function Flashcards() {
         <hr className="hr" style={{ margin: 'var(--space-2) 0 var(--space-3)' }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
           <div className="field">
-            <label>Front</label>
-            <input className="input" type="text" value={s.customCardFront} onChange={e => actions.setCustomCardFront(e.target.value)} placeholder="Question or prompt" />
+            <label>
+              Front
+              <input className="input" type="text" value={s.customCardFront} onChange={e => actions.setCustomCardFront(e.target.value)} placeholder="Question or prompt" />
+            </label>
           </div>
           <div className="field">
-            <label>Back</label>
-            <input className="input" type="text" value={s.customCardBack} onChange={e => actions.setCustomCardBack(e.target.value)} placeholder="Answer" />
+            <label>
+              Back
+              <input className="input" type="text" value={s.customCardBack} onChange={e => actions.setCustomCardBack(e.target.value)} placeholder="Answer" />
+            </label>
           </div>
           <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div className="field" style={{ flex: '1 1 140px' }}>
-              <label>Category</label>
-              <input className="input" type="text" value={s.customCardCategory} onChange={e => actions.setCustomCardCategory(e.target.value)} placeholder="e.g. My weak spots" />
+              <label>
+                Category
+                <input className="input" type="text" value={s.customCardCategory} onChange={e => actions.setCustomCardCategory(e.target.value)} placeholder="e.g. My weak spots" />
+              </label>
             </div>
             <div className="field" style={{ flex: '1 1 200px' }}>
-              <label>Link to topic</label>
-              <select className="input" value={s.customCardTopicId || ''} onChange={e => actions.setCustomCardTopic(e.target.value)}>
-                <option value="">— Not linked —</option>
-                {modulesFor(s).map(m => (
-                  <optgroup key={m.name} label={m.name}>
-                    {m.topics.map(t => (
-                      <option key={t[0]} value={topicKey(s.level, m.name, t[0])}>{t[0]}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
+              <label>
+                Link to topic
+                <select className="input" value={s.customCardTopicId || ''} onChange={e => actions.setCustomCardTopic(e.target.value)}>
+                  <option value="">— Not linked —</option>
+                  {modulesFor(s).map(m => (
+                    <optgroup key={m.name} label={m.name}>
+                      {m.topics.map(t => (
+                        <option key={t[0]} value={topicKey(s.level, m.name, t[0])}>{t[0]}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
             </div>
             <button type="button" className="btn btn-primary" onClick={actions.addCustomCard}>Add card</button>
           </div>

@@ -3,7 +3,7 @@ import {
   fetchCustomCards, cloudAddCustomCard, cloudUpdateCustomCard, cloudDeleteCustomCard,
   cloudGradeCustomCard, fetchTopicKeyMaps
 } from '../lib/cloudData.js';
-import { applySrsGrade } from '../lib/logic.js';
+import { applySrsGrade, dueCustomCards } from '../lib/logic.js';
 
 // Phase 6, step 3. Shaped like useCloudTasksAndNotes.js (real per-row CRUD,
 // an `actions` object AppContext.jsx spreads over base.actions when cloud
@@ -134,17 +134,27 @@ export function useCloudCustomCards({ active, userId, baseState, baseUpdate }) {
     const current = (customCards || []).find(c => c.id === id);
     if (!current) return;
     const graded = applySrsGrade(current, g);
+    const updated = (customCards || []).map(c => (c.id === id ? graded : c));
     // Optimistic, like toggleTask/cloudUpdateTask -- grading is a single,
     // infrequent click, so update local state immediately and report a
     // failure without rolling back (same tradeoff every other action in
     // this app's cloud hooks makes).
-    setCustomCards(prev => (prev || []).map(c => (c.id === id ? graded : c)));
+    setCustomCards(updated);
+    // Mirrors gradeCustomCardState()'s local-mode behavior (logic.js) --
+    // without this, customCardRevealed stays true and customCardCurrentId
+    // stays pointed at the just-graded (now not-due) card, so
+    // Flashcards.jsx's derived `currentCustomCard` silently falls through
+    // to the NEXT due card while still rendering it as already revealed,
+    // skipping the reveal-then-grade step for every custom card review
+    // while cloud sync is active.
+    const due = dueCustomCards({ customCards: updated });
+    baseUpdate({ customCardRevealed: false, customCardCurrentId: due.length ? due[0].id : null });
     try {
       await cloudGradeCustomCard(userId, id, { ease: graded.ease, interval: graded.interval, reps: graded.reps, due: graded.due });
     } catch (e) {
       setError(e?.message || 'Could not save your review.');
     }
-  }, [userId, customCards]);
+  }, [userId, customCards, baseUpdate]);
 
   return {
     loaded: customCards !== null,

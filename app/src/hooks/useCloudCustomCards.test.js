@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import * as cloudData from '../lib/cloudData.js';
 import { useCloudCustomCards } from './useCloudCustomCards.js';
+import { dayIndex } from '../lib/dates.js';
 
 vi.mock('../lib/cloudData.js', () => ({
   fetchCustomCards: vi.fn(),
@@ -18,7 +19,8 @@ function setup() {
     customCards: [],
     customCardFront: '', customCardBack: '', customCardCategory: '', customCardTopicId: null
   };
-  return renderHook(() => useCloudCustomCards({ active: true, userId: 'user-1', baseState, baseUpdate }));
+  const utils = renderHook(() => useCloudCustomCards({ active: true, userId: 'user-1', baseState, baseUpdate }));
+  return { ...utils, baseUpdate };
 }
 
 beforeEach(() => {
@@ -26,6 +28,7 @@ beforeEach(() => {
   cloudData.fetchTopicKeyMaps.mockResolvedValue({ keyToTopicId: new Map(), topicIdToKey: new Map() });
   cloudData.fetchCustomCards.mockResolvedValue([{ id: 'c1', front: 'Original front', back: 'Original back', category: '', topicId: null }]);
   cloudData.cloudUpdateCustomCard.mockResolvedValue(undefined);
+  cloudData.cloudGradeCustomCard.mockResolvedValue(undefined);
 });
 
 // updateCustomCard used to await the cloud write BEFORE updating local
@@ -114,5 +117,48 @@ describe('useCloudCustomCards: deleteCustomCard does not silently drop a pending
 
     expect(cloudData.cloudUpdateCustomCard).not.toHaveBeenCalled();
     expect(result.current.customCards.some(c => c.id === 'c1')).toBe(false);
+  });
+});
+
+// gradeCustomCardState() (the local-mode path, logic.js) always resets
+// customCardRevealed to false and advances customCardCurrentId to
+// whatever's next in the due queue. This cloud-mode path used to update
+// only the customCards array and leave both of those untouched -- so
+// Flashcards.jsx's derived `currentCustomCard` would silently fall
+// through to the next due card while `customCardRevealed` was still true
+// from the card just graded, showing that next card's answer and grade
+// buttons immediately instead of requiring "Reveal answer" first.
+describe('useCloudCustomCards: gradeCustomCard resets reveal/current-card state like the local path does', () => {
+  it('resets customCardRevealed and advances customCardCurrentId to the next still-due card', async () => {
+    const today = dayIndex();
+    cloudData.fetchCustomCards.mockResolvedValue([
+      { id: 'c1', front: 'Card 1', back: 'Back 1', category: '', topicId: null, ease: 2.5, interval: 0, reps: 0, due: today },
+      { id: 'c2', front: 'Card 2', back: 'Back 2', category: '', topicId: null, ease: 2.5, interval: 0, reps: 0, due: today }
+    ]);
+    const { result, baseUpdate } = setup();
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    // Grade 2 ("Good") pushes c1's due date to tomorrow -- no longer due --
+    // while c2 stays due today.
+    await act(async () => {
+      await result.current.actions.gradeCustomCard('c1', 2);
+    });
+
+    expect(baseUpdate).toHaveBeenCalledWith({ customCardRevealed: false, customCardCurrentId: 'c2' });
+  });
+
+  it('sets customCardCurrentId to null when nothing remains due', async () => {
+    const today = dayIndex();
+    cloudData.fetchCustomCards.mockResolvedValue([
+      { id: 'c1', front: 'Card 1', back: 'Back 1', category: '', topicId: null, ease: 2.5, interval: 0, reps: 0, due: today }
+    ]);
+    const { result, baseUpdate } = setup();
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    await act(async () => {
+      await result.current.actions.gradeCustomCard('c1', 2);
+    });
+
+    expect(baseUpdate).toHaveBeenCalledWith({ customCardRevealed: false, customCardCurrentId: null });
   });
 });

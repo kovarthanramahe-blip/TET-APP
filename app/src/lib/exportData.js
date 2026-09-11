@@ -179,6 +179,9 @@ const FIELD_VALIDATORS = {
   customTopics: v => isArrayOfShape(v, item =>
     isSafeString(item.id) && isSafeString(item.level) && isSafeString(item.moduleName)
     && isSafeString(item.name) && isSafeString(item.desc)),
+  planItems: v => isArrayOfShape(v, item =>
+    isSafeString(item.id) && isSafeString(item.date) && isSafeString(item.moduleName)
+    && isFiniteNumber(item.minutesGoal) && typeof item.done === 'boolean'),
   attempts: v => isArrayOfShape(v, item =>
     isSafeString(item.when) && isSafeString(item.mode) && isFiniteNumber(item.correct)
     && isFiniteNumber(item.total) && isFiniteNumber(item.pct)),

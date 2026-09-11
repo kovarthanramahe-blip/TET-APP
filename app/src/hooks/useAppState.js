@@ -3,7 +3,8 @@ import {
   loadState, saveState, phaseLength, finishPhaseState, logSessionState,
   gradeState, buildQuiz, submitQuizState, resetProgressState,
   addCustomCardState, addCustomCardsState, deleteCustomCardState, gradeCustomCardState,
-  addCustomTopicState, deleteCustomTopicState
+  addCustomTopicState, deleteCustomTopicState,
+  generatePlanState, togglePlanItemState, deletePlanItemState
 } from '../lib/logic.js';
 
 export function useAppState() {
@@ -178,6 +179,10 @@ export function useAppState() {
     setCustomTopicDesc: (v) => update({ customTopicDesc: v }),
     addCustomTopic: () => setState(s => addCustomTopicState(s)),
     deleteCustomTopic: (id) => setState(s => deleteCustomTopicState(s, id)),
+
+    generateWeekPlan: (weakestAreas) => setState(s => generatePlanState(s, weakestAreas)),
+    togglePlanItem: (id) => setState(s => togglePlanItemState(s, id)),
+    deletePlanItem: (id) => setState(s => deletePlanItemState(s, id)),
 
     setActiveNote: (id) => update({ activeNote: id }),
     updateNote: (id, patch) => update(s => ({ notes: s.notes.map(n => n.id === id ? { ...n, ...patch } : n) })),

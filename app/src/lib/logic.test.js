@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { offsetDateString } from './dates.js';
 import {
   seedState, loadState, saveState, sanitizeForPersistence,
   focusMins, breakMins, phaseLength, logSessionState, finishPhaseState,
   minutesOn, totalMinutes, streakCount, goalStreakCount,
   modulesFor, modulesWithCustom, topicKey, confOf, globalSearch,
   addCustomTopicState, deleteCustomTopicState,
+  generatePlanState, togglePlanItemState, deletePlanItemState,
   minutesByModule, minutesByTopic,
   dailyMinutesSeries, daysStudiedInRange, weeklyConsistency,
   quizAverageScore, quizPassRate, quizTrend,
@@ -914,6 +916,48 @@ describe('quiz: buildQuiz / isCorrect / submitQuizState', () => {
   });
 });
 
+describe('generatePlanState / togglePlanItemState / deletePlanItemState', () => {
+  it('drafts 7 days starting today, rotating through the given weakest areas, using dailyGoalMinutes', () => {
+    const s = { ...seedState(), dailyGoalMinutes: 45, planItems: [] };
+    const weakestAreas = [{ name: 'Child Development & Pedagogy' }, { name: 'Language I — Hindi' }];
+    const next = generatePlanState(s, weakestAreas);
+    expect(next.planItems).toHaveLength(7);
+    expect(next.planItems[0]).toMatchObject({ date: offsetDateString(0), moduleName: 'Child Development & Pedagogy', minutesGoal: 45, done: false });
+    expect(next.planItems[1]).toMatchObject({ date: offsetDateString(1), moduleName: 'Language I — Hindi', minutesGoal: 45 });
+    expect(next.planItems[2]).toMatchObject({ date: offsetDateString(2), moduleName: 'Child Development & Pedagogy' });
+    expect(next.planItems[6].date).toBe(offsetDateString(6));
+    const ids = new Set(next.planItems.map(p => p.id));
+    expect(ids.size).toBe(7);
+  });
+
+  it('is a no-op when there are no weakest areas to draft from', () => {
+    const s = { ...seedState(), planItems: [] };
+    expect(generatePlanState(s, [])).toBe(s);
+  });
+
+  it('regenerating replaces this week\'s items instead of duplicating them, leaving other dates untouched', () => {
+    const s = { ...seedState(), planItems: [{ id: 'stale', date: '2020-01-01', moduleName: 'Old', minutesGoal: 10, done: true }] };
+    const weakestAreas = [{ name: 'General Studies' }];
+    const first = generatePlanState(s, weakestAreas);
+    const second = generatePlanState(first, [{ name: 'Language II — English' }]);
+    const thisWeek = second.planItems.filter(p => p.date !== '2020-01-01');
+    expect(thisWeek).toHaveLength(7);
+    expect(thisWeek.every(p => p.moduleName === 'Language II — English')).toBe(true);
+    expect(second.planItems.find(p => p.date === '2020-01-01')).toMatchObject({ id: 'stale', moduleName: 'Old' });
+  });
+
+  it('togglePlanItemState flips only the matching item\'s done flag', () => {
+    const s = { planItems: [{ id: 'p1', done: false }, { id: 'p2', done: false }] };
+    const next = togglePlanItemState(s, 'p1');
+    expect(next.planItems).toEqual([{ id: 'p1', done: true }, { id: 'p2', done: false }]);
+  });
+
+  it('deletePlanItemState removes only the matching item', () => {
+    const s = { planItems: [{ id: 'p1' }, { id: 'p2' }] };
+    expect(deletePlanItemState(s, 'p1').planItems).toEqual([{ id: 'p2' }]);
+  });
+});
+
 describe('resetProgressState', () => {
   it('clears study data and completion state but preserves tasks (marked undone) and returns to Dashboard', () => {
     const s = {
@@ -995,5 +1039,18 @@ describe('badgeMetricsFor / navBadgesFor', () => {
     expect(badges.tasks).toBe('');
     // Every seeded card starts due, so the seeded deck alone makes this non-empty.
     expect(badges.cards).not.toBe('');
+  });
+
+  it('navBadgesFor counts only not-done plan items scheduled today or later', () => {
+    const s = {
+      ...seedState(),
+      planItems: [
+        { id: 'p1', date: offsetDateString(-1), moduleName: 'x', minutesGoal: 30, done: false }, // past, excluded
+        { id: 'p2', date: offsetDateString(0), moduleName: 'x', minutesGoal: 30, done: true }, // done, excluded
+        { id: 'p3', date: offsetDateString(1), moduleName: 'x', minutesGoal: 30, done: false }
+      ]
+    };
+    expect(navBadgesFor(s).planner).toBe('1');
+    expect(navBadgesFor({ ...seedState(), planItems: [] }).planner).toBe('');
   });
 });

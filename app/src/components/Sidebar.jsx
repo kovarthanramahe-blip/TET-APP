@@ -165,7 +165,7 @@ export default function Sidebar({ open = false, onRequestClose = () => {} }) {
           </button>
           <p style={{ fontSize: '11px', opacity: .65, margin: 'var(--space-2) 0 0', lineHeight: 1.4 }}>
             {state.confirmReset
-              ? 'Clears every logged session, streak, test attempt, and mastery mark, plus the built-in flashcard deck\'s schedule. Syllabus, tasks, notes, and your own custom topics and flashcards stay.'
+              ? 'Clears every logged session, streak, test attempt, and mastery mark, plus the built-in flashcard deck\'s schedule. Syllabus, tasks, notes, your weekly plan, and your own custom topics and flashcards stay.'
               : 'Start from zero — clears the sample study data.'}
           </p>
         </div>

@@ -20,6 +20,7 @@ const Dashboard = lazy(() => import('./components/Dashboard.jsx'));
 const StudySessions = lazy(() => import('./components/StudySessions.jsx'));
 const Syllabus = lazy(() => import('./components/Syllabus.jsx'));
 const TasksView = lazy(() => import('./components/TasksView.jsx'));
+const Planner = lazy(() => import('./components/Planner.jsx'));
 const Quiz = lazy(() => import('./components/Quiz.jsx'));
 const Flashcards = lazy(() => import('./components/Flashcards.jsx'));
 const Notes = lazy(() => import('./components/Notes.jsx'));
@@ -30,6 +31,7 @@ const VIEW_COMPONENTS = {
   study: StudySessions,
   syllabus: Syllabus,
   tasks: TasksView,
+  planner: Planner,
   quiz: Quiz,
   cards: Flashcards,
   notes: Notes,

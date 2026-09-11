@@ -56,7 +56,8 @@ export function seedState() {
     // equivalent to "every day", matching what remindersEnabled alone used
     // to mean before a schedule existed at all.
     remindersEnabled: false, reminderTime: '18:00', reminderDays: [0, 1, 2, 3, 4, 5, 6],
-    endOfDayNudgeEnabled: false, endOfDayNudgeTime: '21:00'
+    endOfDayNudgeEnabled: false, endOfDayNudgeTime: '21:00',
+    planItems: []
   };
 }
 
@@ -214,6 +215,45 @@ export function deleteCustomTopicState(s, id) {
   const confidence = { ...s.confidence };
   delete confidence[key];
   return { ...s, customTopics: rest, confidence };
+}
+
+// Week-ahead planner: builds 7 plan-item drafts, one per day from today
+// through +6, rotating through the caller's weakestAreas ranking (already
+// sliced/ordered by the caller, e.g. Dashboard/Planner's
+// `modulePerformance(s, quizByPart).slice(0, 2)`) so a short list still
+// produces a full week rather than repeating the single weakest module
+// seven times in a row without at least alternating.
+function draftWeekPlanItems(s, weakestAreas) {
+  if (!weakestAreas || !weakestAreas.length) return [];
+  const minutesGoal = Math.max(1, Number(s.dailyGoalMinutes) || 60);
+  return Array.from({ length: 7 }, (_, i) => ({
+    date: offsetDateString(i),
+    moduleName: weakestAreas[i % weakestAreas.length].name,
+    minutesGoal,
+    done: false
+  }));
+}
+
+// Regenerating replaces exactly the 7 dates just drafted (today..+6) rather
+// than appending -- calling "Generate my week" twice in the same week
+// should refresh that week's plan, not duplicate it. Any item outside that
+// window (there shouldn't be any yet, since nothing else creates plan
+// items, but nothing forbids a stale one lingering) is left untouched.
+export function generatePlanState(s, weakestAreas) {
+  const fresh = draftWeekPlanItems(s, weakestAreas);
+  if (!fresh.length) return s;
+  const now = Date.now();
+  const items = fresh.map((it, i) => ({ id: 'plan' + now + '-' + i, ...it }));
+  const dates = new Set(fresh.map(it => it.date));
+  return { ...s, planItems: [...items, ...s.planItems.filter(p => !dates.has(p.date))] };
+}
+
+export function togglePlanItemState(s, id) {
+  return { ...s, planItems: s.planItems.map(p => (p.id === id ? { ...p, done: !p.done } : p)) };
+}
+
+export function deletePlanItemState(s, id) {
+  return { ...s, planItems: s.planItems.filter(p => p.id !== id) };
 }
 
 // Phase 10: global search across the app's own content -- notes, tasks,
@@ -672,6 +712,7 @@ export const VIEWS = [
   ['study', 'Study sessions', 'Focus timer', 'Pomodoro & manual log'],
   ['syllabus', 'Syllabus', 'Course manager', 'level'],
   ['tasks', 'Tasks', 'Study agenda', 'Priorities & deadlines'],
+  ['planner', 'Planner', 'Week-ahead plan', 'Generated from your weakest areas'],
   ['quiz', 'Tests', 'Assessment engine', 'Quiz builder & mock exam'],
   ['cards', 'Flashcards', 'Spaced repetition', 'SM-2 scheduler'],
   ['notes', 'Notes', 'Notes hub', 'Markdown, attached to topics'],
@@ -696,8 +737,10 @@ export function navBadgesFor(s) {
   const openTasks = s.tasks.filter(t => !t.done);
   const dueCount = dueCards(s).length + dueCustomCards(s).length;
   const metrics = badgeMetricsFor(s);
+  const openPlanItems = s.planItems.filter(p => !p.done && p.date >= today());
   return {
     tasks: openTasks.length ? String(openTasks.length) : '',
+    planner: openPlanItems.length ? String(openPlanItems.length) : '',
     cards: dueCount ? String(dueCount) : '',
     badges: String(BADGE_DEFS.filter(b => metrics[b.metric] >= b.target).length)
   };

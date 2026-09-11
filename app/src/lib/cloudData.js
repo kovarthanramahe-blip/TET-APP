@@ -277,6 +277,59 @@ export async function cloudDeleteCustomTopic(userId, id) {
   assertNoError('deleting a custom topic', error);
 }
 
+function planItemFromRow(row) {
+  return { id: row.id, date: row.plan_date, moduleName: row.module_name, minutesGoal: row.minutes_goal, done: row.done };
+}
+
+export async function fetchPlanItems(userId) {
+  const supabase = await getSupabaseClient();
+  const { data, error } = await supabase
+    .from('plan_items')
+    .select('*')
+    .eq('user_id', userId)
+    .order('plan_date', { ascending: true });
+  assertNoError('fetching your weekly plan', error);
+  return (data || []).map(planItemFromRow);
+}
+
+// "Generate my week" replaces that week's plan rather than appending to it
+// (see generatePlanState()'s own comment in logic.js) -- delete-then-insert
+// against the exact `dates` just drafted keeps a regenerate idempotent
+// instead of accumulating duplicate rows for the same day.
+export async function cloudGenerateWeekPlan(userId, dates, items) {
+  const supabase = await getSupabaseClient();
+  const del = await supabase.from('plan_items').delete().eq('user_id', userId).in('plan_date', dates);
+  assertNoError('replacing this week\'s plan', del.error);
+  if (!items.length) return [];
+  const { data, error } = await supabase
+    .from('plan_items')
+    .insert(items.map(it => ({ user_id: userId, plan_date: it.date, module_name: it.moduleName, minutes_goal: it.minutesGoal, done: false })))
+    .select();
+  assertNoError('generating this week\'s plan', error);
+  return (data || []).map(planItemFromRow);
+}
+
+export async function cloudUpdatePlanItem(userId, id, patch) {
+  const supabase = await getSupabaseClient();
+  const dbPatch = {};
+  if ('done' in patch) dbPatch.done = patch.done;
+  const { data, error } = await supabase
+    .from('plan_items')
+    .update(dbPatch)
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single();
+  assertNoError('updating plan item', error);
+  return planItemFromRow(data);
+}
+
+export async function cloudDeletePlanItem(userId, id) {
+  const supabase = await getSupabaseClient();
+  const { error } = await supabase.from('plan_items').delete().eq('id', id).eq('user_id', userId);
+  assertNoError('deleting plan item', error);
+}
+
 // Returns both the local-shape confidence object (for merging into app
 // state) and the keyToTopicId map the caller needs to hold onto for any
 // later cloudSetTopicConfidence() calls -- reference data that doesn't

@@ -260,7 +260,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
             {heatCells.map((h, i) => <div key={i} title={h.title} style={h.style}></div>)}
           </div>
-          <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-3)', fontSize: '12px', opacity: .75 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-4)', marginTop: 'var(--space-3)', fontSize: '12px', opacity: .75 }}>
             {heatLegend.map(l => (
               <span key={l.label} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <i style={l.style}></i>{l.label}

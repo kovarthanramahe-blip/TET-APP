@@ -93,7 +93,7 @@ function Shell() {
         aria-hidden="true"
       ></div>
       <Sidebar open={sidebarOpen} onRequestClose={closeSidebar} />
-      <main style={{ flex: '1 1 560px', minWidth: '320px', padding: 'var(--space-6) var(--space-8)', maxWidth: '1180px' }}>
+      <main className="app-main" style={{ flex: '1 1 560px', minWidth: '320px', padding: 'var(--space-6) var(--space-8)', maxWidth: '1180px' }}>
         <Header />
         <QuoteBar />
         {/* Phase 28: keyed by view so navigating away from a broken view

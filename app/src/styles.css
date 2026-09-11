@@ -319,9 +319,13 @@ textarea.input { min-height: 90px; resize: vertical; }
     border-bottom: 1px solid var(--color-divider);
   }
   .mobile-topbar-title { font-family: var(--font-heading); font-size: 16px; }
+  /* Mobile/PWA polish pass: bumped from 36px to the 44px touch-target
+     minimum both major platforms recommend (WCAG 2.5.5 / iOS HIG / Material)
+     -- this is the button that opens the ENTIRE app's navigation, so it's
+     the single most consequential touch target on a phone. */
   .mobile-menu-btn {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px; flex: none; font-size: 18px; line-height: 1;
+    width: 44px; height: 44px; flex: none; font-size: 18px; line-height: 1;
     color: var(--color-text); background: var(--color-surface);
     border: 1px solid var(--color-divider); border-radius: var(--radius-md); cursor: pointer;
   }
@@ -337,10 +341,11 @@ textarea.input { min-height: 90px; resize: vertical; }
     transform: translateX(0); visibility: visible;
     transition: transform .25s ease, visibility 0s linear 0s;
   }
+  /* Same 44px touch-target bump as .mobile-menu-btn above. */
   .sidebar-close-btn {
     display: inline-flex; align-items: center; justify-content: center;
     position: absolute; top: var(--space-3); right: var(--space-3);
-    width: 32px; height: 32px; font-size: 20px; line-height: 1;
+    width: 44px; height: 44px; font-size: 20px; line-height: 1;
     color: var(--color-text); background: transparent;
     border: 1px solid var(--color-divider); border-radius: var(--radius-md); cursor: pointer;
   }
@@ -349,6 +354,30 @@ textarea.input { min-height: 90px; resize: vertical; }
     background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
   }
   .notes-layout { grid-template-columns: 1fr; }
+
+  /* Mobile/PWA polish pass, three fixes:
+     1. .app-main's desktop padding (var(--space-8) = ~36.8px each side)
+        eats ~74px of a ~360-390px-wide phone screen -- enough to push
+        several views' `repeat(auto-fit, minmax(300px,1fr))` grids into
+        horizontal overflow, since 360px minus that padding leaves under
+        300px of actual content width. Shrinking to var(--space-4) gives
+        those grids room to actually fit a single column without overflow,
+        and reclaims real content width everywhere else too.
+     2. .input's 14px font size is below the 16px iOS Safari treats as "big
+        enough" -- anything smaller triggers an automatic page zoom on
+        focus, which then has to be manually zoomed back out. Every text/
+        number/date input in the app (notes, tasks, study-session logging,
+        quiz fill-in-the-blank, custom flashcards, custom topics) inherits
+        this fix from the one shared class.
+     3. .btn's height was whatever its font/line-height/padding happened to
+        produce (~35-36px) -- under the 44px minimum touch target both iOS
+        HIG and Material Design recommend. Every button built from this
+        class (nav actions, quiz "Next question"/"Exit test", flashcard
+        reveal/delete, task/note actions, panel buttons) gets easier to
+        tap accurately without hunting for existing per-button overrides. */
+  .app-main { padding: var(--space-4); }
+  .input { font-size: 16px; }
+  .btn { min-height: 44px; }
 }
 
 /* Phase 16: printable revision sheet. .print-only is portaled to

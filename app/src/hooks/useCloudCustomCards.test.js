@@ -8,6 +8,7 @@ vi.mock('../lib/cloudData.js', () => ({
   fetchCustomCards: vi.fn(),
   fetchTopicKeyMaps: vi.fn(),
   cloudAddCustomCard: vi.fn(),
+  cloudAddCustomCards: vi.fn(),
   cloudUpdateCustomCard: vi.fn(),
   cloudDeleteCustomCard: vi.fn(),
   cloudGradeCustomCard: vi.fn()
@@ -194,5 +195,56 @@ describe('useCloudCustomCards: deleteCustomCard resets reveal/current-card state
     });
 
     expect(baseUpdate).not.toHaveBeenCalled();
+  });
+});
+
+// "Add my mistakes to flashcards" (QuizResult.jsx) hands this several
+// drafts at once -- one bulk insert, not one cloudAddCustomCard() call per
+// missed question.
+describe('useCloudCustomCards: addMistakesToDeck', () => {
+  it('inserts all given cards in one call and prepends the returned rows', async () => {
+    const { result } = setup();
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    const drafts = [
+      { front: 'Q1', back: 'A1', category: 'General Studies' },
+      { front: 'Q2', back: 'A2', category: 'Subject' }
+    ];
+    cloudData.cloudAddCustomCards.mockResolvedValue([
+      { id: 'new1', front: 'Q1', back: 'A1', category: 'General Studies', topicId: null, ease: 2.5, interval: 0, reps: 0, due: 0 },
+      { id: 'new2', front: 'Q2', back: 'A2', category: 'Subject', topicId: null, ease: 2.5, interval: 0, reps: 0, due: 0 }
+    ]);
+
+    await act(async () => {
+      await result.current.actions.addMistakesToDeck(drafts);
+    });
+
+    expect(cloudData.cloudAddCustomCards).toHaveBeenCalledTimes(1);
+    expect(cloudData.cloudAddCustomCards).toHaveBeenCalledWith('user-1', drafts);
+    expect(result.current.customCards.map(c => c.id)).toEqual(['new1', 'new2', 'c1']);
+  });
+
+  it('is a no-op for an empty list', async () => {
+    const { result } = setup();
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    await act(async () => {
+      await result.current.actions.addMistakesToDeck([]);
+    });
+
+    expect(cloudData.cloudAddCustomCards).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a failure without losing existing cards', async () => {
+    const { result } = setup();
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    cloudData.cloudAddCustomCards.mockRejectedValue(new Error('network error'));
+
+    await act(async () => {
+      await result.current.actions.addMistakesToDeck([{ front: 'Q1', back: 'A1', category: '' }]);
+    });
+
+    expect(result.current.error).toMatch(/network error/);
+    expect(result.current.customCards.map(c => c.id)).toEqual(['c1']);
   });
 });

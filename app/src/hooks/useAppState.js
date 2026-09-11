@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   loadState, saveState, phaseLength, finishPhaseState, logSessionState,
   gradeState, buildQuiz, submitQuizState, resetProgressState,
-  addCustomCardState, deleteCustomCardState, gradeCustomCardState,
+  addCustomCardState, addCustomCardsState, deleteCustomCardState, gradeCustomCardState,
   addCustomTopicState, deleteCustomTopicState
 } from '../lib/logic.js';
 
@@ -163,6 +163,7 @@ export function useAppState() {
     deleteCustomCard: (id) => setState(s => deleteCustomCardState(s, id)),
     revealCustomCard: (id) => update({ customCardCurrentId: id, customCardRevealed: true }),
     gradeCustomCard: (id, g) => setState(s => gradeCustomCardState(s, id, g)),
+    addMistakesToDeck: (cards) => setState(s => addCustomCardsState(s, cards)),
 
     setCustomTopicModule: (v) => update({ customTopicModule: v }),
     setCustomTopicName: (v) => update({ customTopicName: v }),

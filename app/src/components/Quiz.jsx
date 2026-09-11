@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../AppContext.jsx';
-import { isCorrect, bestScore, quoteFor } from '../lib/logic.js';
+import { isCorrect, bestScore, quoteFor, missedQuestionsFrom } from '../lib/logic.js';
 import { chip } from '../lib/styleHelpers.js';
 
 const TYPE_OPTIONS = [['mcq', 'Multiple choice'], ['tf', 'True / false'], ['fib', 'Fill in the blank'], ['sa', 'Short answer']];
@@ -241,6 +241,19 @@ function QuizResult({ s, actions }) {
     : '';
   const resQuote = (s.showQuotes ?? true) ? quoteFor(resCorrect + 3) : '';
 
+  // Closes the loop between a test result and spaced repetition: every
+  // question missed just now, turned into a flashcard draft with one
+  // click, instead of the quiz and the SRS deck staying two systems that
+  // never talk to each other. `added` is local, ephemeral UI state (like
+  // BackupPanel.jsx's `restored`) -- there's nothing to persist once the
+  // cards themselves exist in customCards.
+  const missed = missedQuestionsFrom(quiz, s.answers);
+  const [added, setAdded] = useState(false);
+  const addMistakes = () => {
+    actions.addMistakesToDeck(missed);
+    setAdded(true);
+  };
+
   return (
     <section>
       <div style={{ maxWidth: '820px', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
@@ -254,6 +267,12 @@ function QuizResult({ s, actions }) {
           <div style={{ flex: '1 1 220px' }}>
             <p style={{ margin: 0, fontSize: '15px' }}>{resVerdict}</p>
             <p style={{ margin: 'var(--space-2) 0 0', fontFamily: 'var(--font-heading)', fontStyle: 'italic', fontSize: '17px' }}>{resQuote}</p>
+            {missed.length > 0 && !added && (
+              <button type="button" className="btn btn-secondary" style={{ marginTop: 'var(--space-3)' }} onClick={addMistakes}>
+                Add {missed.length} missed question{missed.length > 1 ? 's' : ''} to flashcards
+              </button>
+            )}
+            {added && <p role="status" style={{ fontSize: '13px', opacity: .7, margin: 'var(--space-3) 0 0' }}>Added to your flashcards.</p>}
           </div>
         </div>
         <div>

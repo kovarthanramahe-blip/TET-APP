@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  fetchCustomCards, cloudAddCustomCard, cloudUpdateCustomCard, cloudDeleteCustomCard,
+  fetchCustomCards, cloudAddCustomCard, cloudAddCustomCards, cloudUpdateCustomCard, cloudDeleteCustomCard,
   cloudGradeCustomCard, fetchTopicKeyMaps
 } from '../lib/cloudData.js';
 import { applySrsGrade, dueCustomCards } from '../lib/logic.js';
@@ -166,11 +166,24 @@ export function useCloudCustomCards({ active, userId, baseState, baseUpdate }) {
     }
   }, [userId, customCards, baseUpdate]);
 
+  // Bulk counterpart to addCustomCard() -- "Add my mistakes to flashcards"
+  // (QuizResult.jsx) hands this a ready-made array of
+  // missedQuestionsFrom() drafts. One insert, not one call per card.
+  const addMistakesToDeck = useCallback(async (cards) => {
+    if (!cards || !cards.length) return;
+    try {
+      const rows = await cloudAddCustomCards(userId, cards);
+      setCustomCards(prev => [...rows, ...(prev || [])]);
+    } catch (e) {
+      setError(e?.message || 'Could not add your missed questions to the deck.');
+    }
+  }, [userId]);
+
   return {
     loaded: customCards !== null,
     error,
     clearError: () => setError(''),
     customCards: customCards !== null ? customCards : baseState.customCards,
-    actions: { addCustomCard, updateCustomCard, deleteCustomCard, gradeCustomCard }
+    actions: { addCustomCard, updateCustomCard, deleteCustomCard, gradeCustomCard, addMistakesToDeck }
   };
 }

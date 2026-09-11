@@ -542,6 +542,23 @@ export function addCustomCardState(s) {
   };
 }
 
+// Bulk counterpart to addCustomCardState() -- used by "Add my mistakes to
+// flashcards" (QuizResult.jsx) to turn several missedQuestionsFrom() drafts
+// into real cards in one state update, rather than the single-draft-field
+// shape addCustomCardState() reads from the manual "Add a flashcard" form.
+// Same fresh SM-2 defaults as a manually-added card. The cloud-active
+// equivalent is useCloudCustomCards.js's addMistakesToDeck(), which calls
+// cloudAddCustomCards() instead of touching this local state at all.
+export function addCustomCardsState(s, cards) {
+  if (!cards || !cards.length) return s;
+  const now = Date.now();
+  const fresh = cards.map((c, i) => ({
+    id: 'card' + now + '-' + i, front: c.front, back: c.back, category: c.category || '',
+    topicId: null, ease: 2.5, interval: 0, reps: 0, due: dayIndex()
+  }));
+  return { ...s, customCards: [...fresh, ...s.customCards] };
+}
+
 export function deleteCustomCardState(s, id) {
   const rest = s.customCards.filter(c => c.id !== id);
   const wasCurrent = s.customCardCurrentId === id;
@@ -572,6 +589,24 @@ export function isCorrect(q, a) {
   if (q.type === 'mcq' || q.type === 'tf') return a === q.answer;
   if (q.type === 'fib') return String(a).trim().toLowerCase() === String(q.answer).toLowerCase();
   return String(a).trim().length > 12;
+}
+
+// Closes the loop between test results and spaced repetition: every
+// incorrectly-answered question from a just-finished quiz, shaped as a
+// draft custom flashcard (front = the question, back = the correct answer
+// + its explanation, category = the paper part it came from) ready for
+// addCustomCardsState()/cloudAddCustomCards() to actually create. Pure and
+// side-effect-free -- QuizResult.jsx calls this once to both show a count
+// and, if the user chooses, hand the same list to actions.addMistakesToDeck.
+export function missedQuestionsFrom(quiz, answers) {
+  return (quiz || [])
+    .map((q, i) => ({ q, given: answers[i] }))
+    .filter(({ q, given }) => !isCorrect(q, given))
+    .map(({ q }) => ({
+      front: q.q,
+      back: ((q.type === 'mcq' || q.type === 'tf') ? q.options[q.answer] : q.answer) + ' — ' + q.explain,
+      category: q.part
+    }));
 }
 
 export function submitQuizState(s) {

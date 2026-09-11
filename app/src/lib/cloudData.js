@@ -484,6 +484,24 @@ export async function cloudAddCustomCard(userId, keyToTopicId, { front, back, ca
   };
 }
 
+// Bulk counterpart to cloudAddCustomCard() -- "Add my mistakes to
+// flashcards" (QuizResult.jsx) creates several cards from one quiz attempt
+// at once, so this is one insert() with an array of rows instead of N
+// separate round-trips. No topic link: a missed quiz question's `part` is
+// a paper section ("General Studies"), not a resolvable syllabus topic_id,
+// so it's carried as the free-text `category` instead, the same field the
+// manual "Add a flashcard" form already uses for an arbitrary label.
+export async function cloudAddCustomCards(userId, cards) {
+  if (!cards.length) return [];
+  const supabase = await getSupabaseClient();
+  const { data, error } = await supabase
+    .from('custom_flashcards')
+    .insert(cards.map(c => ({ user_id: userId, front: c.front, back: c.back, category: c.category || '' })))
+    .select();
+  assertNoError('adding mistake flashcards', error);
+  return (data || []).map(row => customCardFromRow(row, new Map()));
+}
+
 // Content-only edits (front/back/category/topicId) -- NOT the SM-2
 // scheduling fields, which only ever change via cloudGradeCustomCard()
 // below. Keeping the two write paths separate means an in-progress edit to

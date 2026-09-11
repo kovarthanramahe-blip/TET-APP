@@ -87,4 +87,37 @@ describe('Dashboard', () => {
     const checkbox = label.querySelector('input[type="checkbox"]');
     expect(checkbox.checked).toBe(true);
   });
+
+  // "Practice <weakest module>" turns the already-computed weakest-area
+  // chart into a one-tap shortcut straight into a filtered practice quiz,
+  // instead of a chart the user has to notice, remember, and go set the
+  // same filter up for themselves on the Tests page. Dashboard.test.jsx
+  // doesn't render the full App shell's view switcher, so this reads the
+  // resulting state directly rather than looking for the Quiz component
+  // to appear.
+  it('"Practice <weakest module>" jumps straight into an active practice quiz filtered to that module\'s part', () => {
+    function StateDebug() {
+      const { state } = useApp();
+      return (
+        <div data-testid="debug">
+          {JSON.stringify({ view: state.view, quizStage: state.quizStage, quizMode: state.quizMode, quizParts: state.quizParts })}
+        </div>
+      );
+    }
+    const { getByRole, getByTestId } = render(
+      <AppProvider>
+        <StateDebug />
+        <Dashboard />
+      </AppProvider>
+    );
+
+    const button = getByRole('button', { name: /^Practice / });
+    fireEvent.click(button);
+
+    const debug = JSON.parse(getByTestId('debug').textContent);
+    expect(debug.view).toBe('quiz');
+    expect(debug.quizStage).toBe('active');
+    expect(debug.quizMode).toBe('Practice');
+    expect(debug.quizParts).toHaveLength(1);
+  });
 });

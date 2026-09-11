@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { AppProvider } from '../AppContext.jsx';
+import { AppProvider, useApp } from '../AppContext.jsx';
 import Quiz from './Quiz.jsx';
 
 beforeEach(() => {
@@ -63,5 +63,50 @@ describe('Quiz: fill-in-the-blank button label tracks what the click will actual
     // Unanswered on the last question -- clicking this literally submits,
     // so the label must say so rather than "Next question"/"Check answer".
     expect(screen.getByRole('button', { name: 'Submit test' })).toBeInTheDocument();
+  });
+});
+
+function StateDebug() {
+  const { state } = useApp();
+  return <div data-testid="debug">{JSON.stringify({ customCards: state.customCards })}</div>;
+}
+
+// Closes the quiz -> flashcards loop: a missed question, one click away
+// from becoming spaced-repetition material, instead of the quiz and the
+// SRS deck running as two systems that never talk to each other.
+describe('Quiz: "Add missed questions to flashcards" on the result screen', () => {
+  it('offers to add every wrong answer, and adds them to customCards on click', () => {
+    render(
+      <AppProvider>
+        <StateDebug />
+        <Quiz />
+      </AppProvider>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Multiple choice' }));
+    fireEvent.click(screen.getByRole('button', { name: 'True / false' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fill in the blank' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start practice set' }));
+
+    // Answer both fib questions wrong.
+    fireEvent.change(screen.getByPlaceholderText('Type your answer'), { target: { value: 'definitely wrong' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Check answer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next question' }));
+    fireEvent.change(screen.getByPlaceholderText('Type your answer'), { target: { value: 'also wrong' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Check answer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Submit test' }));
+
+    const addButton = screen.getByRole('button', { name: 'Add 2 missed questions to flashcards' });
+    const before = JSON.parse(screen.getByTestId('debug').textContent).customCards.length;
+
+    fireEvent.click(addButton);
+
+    expect(screen.getByText('Added to your flashcards.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Add \d+ missed question/ })).not.toBeInTheDocument();
+    const after = JSON.parse(screen.getByTestId('debug').textContent).customCards;
+    expect(after.length).toBe(before + 2);
+    expect(after.slice(0, 2).map(c => c.front).sort()).toEqual([
+      'Change to passive voice: "She writes a letter." → A letter ___ written by her.',
+      'The sum of the interior angles of a triangle is ___ degrees.'
+    ]);
   });
 });

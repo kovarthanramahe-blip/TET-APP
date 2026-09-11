@@ -5,7 +5,7 @@ import {
   totalMinutes, minutesOn, streakCount, bestScore, modulesFor, confOf,
   confColor, confName, taskViewModel, minutesByModule,
   dailyMinutesSeries, daysStudiedInRange, weeklyConsistency, minutesByTopic,
-  quizAverageScore, quizPassRate, quizTrend, modulePerformance,
+  quizAverageScore, quizPassRate, quizTrend, modulePerformance, partForModule,
   seededDeckProgress, customDeckProgress,
   daysUntilExam, todayGoalProgress, weeklyGoalProgress
 } from '../lib/logic.js';
@@ -157,6 +157,23 @@ export default function Dashboard() {
   const weakestAreas = performance.slice(0, 2);
   const strongestAreas = performance.slice(-2).reverse();
   const selectedNotes = s.notes.filter(n => !deselectedNoteIds.has(n.id));
+
+  // Turns "here's a chart" into "here's a decision made for you": jumps
+  // straight into a practice quiz filtered to the single weakest module,
+  // rather than making the user notice the weakest row, remember its part
+  // of the paper, then go set that filter up themselves on the Tests page.
+  // Practice (not Mock) mode -- this is a quick, low-stakes nudge, not the
+  // bigger commitment a timed mock represents. quizTypes is left as
+  // whatever the user last configured; only the part filter and mode
+  // change. React 18 batches these into one render, so nothing flashes
+  // through the old view/setup state in between.
+  const practiceWeakestTopic = () => {
+    if (!weakestAreas.length) return;
+    actions.setQuizParts([partForModule(weakestAreas[0].name)]);
+    actions.setQuizMode('Practice');
+    actions.startQuiz();
+    actions.setView('quiz');
+  };
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
@@ -405,6 +422,11 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
+              {weakestAreas.length > 0 && (
+                <button type="button" className="btn btn-secondary" style={{ fontSize: '12px', marginTop: 'var(--space-2)' }} onClick={practiceWeakestTopic}>
+                  Practice {weakestAreas[0].name}
+                </button>
+              )}
             </div>
             <div>
               <div style={{ fontSize: '11px', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .65, marginBottom: '6px' }}>Strongest</div>

@@ -15,7 +15,7 @@ import {
   cardState, dueCards, bestScore, quoteFor,
   nextIntervalFor, applySrsGrade, gradeState,
   dueCustomCards, gradeCustomCardState, addCustomCardState, deleteCustomCardState,
-  buildQuiz, isCorrect, submitQuizState,
+  buildQuiz, isCorrect, submitQuizState, missedQuestionsFrom, addCustomCardsState,
   resetProgressState, taskViewModel,
   badgeMetricsFor, navBadgesFor,
   CARDS, BANK
@@ -832,6 +832,62 @@ describe('quiz: buildQuiz / isCorrect / submitQuizState', () => {
   it('submitQuizState handles an empty quiz without dividing by zero', () => {
     const next = submitQuizState({ quiz: [], answers: {}, quizMode: 'Practice', attempts: [], mockLeft: 0 });
     expect(next.attempts[0]).toMatchObject({ correct: 0, total: 0, pct: 0 });
+  });
+
+  // Closes the quiz -> flashcards loop: a missed question becomes a
+  // ready-to-file flashcard draft (front/back/category), an incorrect one
+  // shouldn't, and each type's "correct answer" text is drawn from the
+  // right field (options[answer] for mcq/tf, answer itself for fib/sa) --
+  // the exact same rule QuizResult.jsx's own answer-review text already
+  // uses, so the two never show a different "correct answer" for the
+  // same question.
+  describe('missedQuestionsFrom', () => {
+    const quiz = [
+      { type: 'mcq', part: 'General Studies', q: 'Capital of Haryana?', options: ['Panipat', 'Chandigarh'], answer: 1, explain: 'Shared capital with Punjab.' },
+      { type: 'fib', part: 'Language II — English', q: 'Past tense of "go" is ___.', answer: 'went', explain: 'Irregular verb.' },
+      { type: 'mcq', part: 'General Studies', q: '2 + 2 = ?', options: ['3', '4'], answer: 1, explain: 'Basic arithmetic.' }
+    ];
+
+    it('includes only incorrectly-answered questions, with the correct answer text and part as category', () => {
+      const answers = { 0: 0, 1: 'went', 2: 1 }; // question 0 wrong, 1 and 2 right
+      const missed = missedQuestionsFrom(quiz, answers);
+      expect(missed).toHaveLength(1);
+      expect(missed[0]).toEqual({
+        front: 'Capital of Haryana?',
+        back: 'Chandigarh — Shared capital with Punjab.',
+        category: 'General Studies'
+      });
+    });
+
+    it('treats an unanswered question as missed too', () => {
+      const missed = missedQuestionsFrom(quiz, { 1: 'went', 2: 1 });
+      expect(missed.map(m => m.front)).toEqual(['Capital of Haryana?']);
+    });
+
+    it('returns an empty array for a perfect score', () => {
+      expect(missedQuestionsFrom(quiz, { 0: 1, 1: 'went', 2: 1 })).toEqual([]);
+    });
+  });
+
+  describe('addCustomCardsState', () => {
+    it('prepends fresh cards with SM-2 defaults and unique ids for each', () => {
+      const s = { customCards: [{ id: 'existing' }] };
+      const next = addCustomCardsState(s, [
+        { front: 'Q1', back: 'A1', category: 'General Studies' },
+        { front: 'Q2', back: 'A2', category: 'Subject' }
+      ]);
+      expect(next.customCards).toHaveLength(3);
+      const [c1, c2] = next.customCards;
+      expect(c1).toMatchObject({ front: 'Q1', back: 'A1', category: 'General Studies', ease: 2.5, reps: 0, interval: 0 });
+      expect(c2).toMatchObject({ front: 'Q2', back: 'A2', category: 'Subject' });
+      expect(c1.id).not.toBe(c2.id);
+      expect(next.customCards[2]).toEqual({ id: 'existing' });
+    });
+
+    it('is a no-op for an empty list', () => {
+      const s = { customCards: [{ id: 'existing' }] };
+      expect(addCustomCardsState(s, [])).toBe(s);
+    });
   });
 });
 

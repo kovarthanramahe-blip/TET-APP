@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
 
 // Small, non-blocking, dismissible notification for the one-time
@@ -17,6 +17,19 @@ export default function MigrationBanner() {
   const { migration } = useApp();
   const { status, error, retry, cloudError, clearCloudError } = migration;
   const [dismissed, setDismissed] = useState(false);
+
+  // MigrationBanner is rendered persistently (Shell never unmounts it, even
+  // across a logout/login) and `dismissed` never reset on its own -- so
+  // dismissing an error banner permanently silenced every LATER migration
+  // attempt too, including the one useSupabaseMigration.js's own comment
+  // documents as the intended manual retry path: "log out, log back in".
+  // Re-arming at the start of every fresh attempt (status flips to
+  // 'migrating' on both an automatic re-login attempt and a manual Retry
+  // click) means a dismissal only ever silences the attempt it was shown
+  // for, never attempts that haven't happened yet.
+  useEffect(() => {
+    if (status === 'migrating') setDismissed(false);
+  }, [status]);
 
   const base = {
     position: 'fixed', right: 'var(--space-4)', maxWidth: '340px',

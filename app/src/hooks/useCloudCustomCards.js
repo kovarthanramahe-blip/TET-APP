@@ -36,6 +36,8 @@ export function useCloudCustomCards({ active, userId, baseState, baseUpdate }) {
   // card's optional topic link, fetched once per activation via the same
   // fetchTopicKeyMaps() notes/study_sessions/topic_confidence already share.
   const topicMapsRef = useRef(null);
+  // id -> { timer, patch } -- see updateCustomCard below.
+  const pendingCardWrites = useRef(new Map());
 
   useEffect(() => {
     if (!active) {
@@ -60,6 +62,18 @@ export function useCloudCustomCards({ active, userId, baseState, baseUpdate }) {
     return () => { cancelled = true; };
   }, [active, userId]);
 
+  // Flush any pending debounced card writes on unmount so an edit made
+  // right before navigating away/logging out isn't silently dropped --
+  // same rationale as useCloudTasksAndNotes.js's identical unmount effect.
+  useEffect(() => () => {
+    const keyToTopicId = topicMapsRef.current?.keyToTopicId || new Map();
+    for (const [id, { timer, patch }] of pendingCardWrites.current) {
+      clearTimeout(timer);
+      cloudUpdateCustomCard(userId, keyToTopicId, id, patch).catch(() => { /* best-effort on unmount */ });
+    }
+    pendingCardWrites.current.clear();
+  }, [userId]);
+
   const addCustomCard = useCallback(async () => {
     if (!baseState.customCardFront.trim() || !baseState.customCardBack.trim()) return;
     try {
@@ -75,21 +89,43 @@ export function useCloudCustomCards({ active, userId, baseState, baseUpdate }) {
     }
   }, [userId, baseState.customCardFront, baseState.customCardBack, baseState.customCardCategory, baseState.customCardTopicId, baseUpdate]);
 
-  const updateCustomCard = useCallback(async (id, patch) => {
-    try {
+  // Front/Back/Category are per-keystroke controlled inputs (Flashcards.jsx),
+  // so this must be optimistic + debounced exactly like updateNote() in
+  // useCloudTasksAndNotes.js -- awaiting the write before updating local
+  // state (the old behavior here) meant the input's displayed value didn't
+  // change until each round-trip resolved, and out-of-order responses could
+  // snap the field back to a stale value mid-typing.
+  const updateCustomCard = useCallback((id, patch) => {
+    setCustomCards(prev => (prev || []).map(c => (c.id === id ? { ...c, ...patch } : c)));
+
+    const existing = pendingCardWrites.current.get(id);
+    if (existing) clearTimeout(existing.timer);
+    const mergedPatch = { ...(existing?.patch || {}), ...patch };
+    const timer = setTimeout(() => {
+      pendingCardWrites.current.delete(id);
       const keyToTopicId = topicMapsRef.current?.keyToTopicId || new Map();
-      await cloudUpdateCustomCard(userId, keyToTopicId, id, patch);
-      setCustomCards(prev => (prev || []).map(c => (c.id === id ? { ...c, ...patch } : c)));
-    } catch (e) {
-      setError(e?.message || 'Could not update the flashcard.');
-    }
+      cloudUpdateCustomCard(userId, keyToTopicId, id, mergedPatch).catch(e => {
+        setError(e?.message || 'Could not save the flashcard.');
+      });
+    }, 600);
+    pendingCardWrites.current.set(id, { timer, patch: mergedPatch });
   }, [userId]);
 
   const deleteCustomCard = useCallback(async (id) => {
+    const pending = pendingCardWrites.current.get(id);
+    if (pending) { clearTimeout(pending.timer); pendingCardWrites.current.delete(id); }
     try {
       await cloudDeleteCustomCard(userId, id);
       setCustomCards(prev => (prev || []).filter(c => c.id !== id));
     } catch (e) {
+      // The card was NOT actually deleted -- if a debounced edit was still
+      // pending, resend it (same rationale as deleteNote()'s equivalent
+      // branch): otherwise it's lost for good even though the card (with
+      // its pre-edit content) still exists in Supabase.
+      if (pending) {
+        const keyToTopicId = topicMapsRef.current?.keyToTopicId || new Map();
+        cloudUpdateCustomCard(userId, keyToTopicId, id, pending.patch).catch(() => { /* best-effort */ });
+      }
       setError(e?.message || 'Could not delete the flashcard.');
     }
   }, [userId]);

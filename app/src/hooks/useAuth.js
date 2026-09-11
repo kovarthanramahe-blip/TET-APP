@@ -64,7 +64,15 @@ export function useAuth() {
     if (!isSupabaseConfigured) return;
     setNotice('');
     const supabase = await getSupabaseClient();
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    // Unlike signInWithGoogle/sendMagicLink, a failure here needs to reach
+    // the caller as a rejection, not just a notice: AccountPanel.jsx's
+    // account-deletion flow catches a signOut() failure specifically to
+    // fall back to a full page reload (its own comment explains why), and
+    // that catch block never ran for an ordinary Supabase-reported error --
+    // supabase-js resolves signOut() with { error } instead of rejecting,
+    // so the failure was silently discarded before this fix.
+    if (error) throw new Error(error.message);
   }, []);
 
   return {

@@ -24,7 +24,7 @@ export function getSupabaseClient() {
   if (!isSupabaseConfigured) return Promise.resolve(null);
   if (!clientPromise) {
     clientPromise = import('@supabase/supabase-js').then(({ createClient }) =>
-      createClient(supabaseUrl, supabaseKey)
+      createClient(supabaseUrl, supabaseKey, { db: { schema: 'public' } })
     );
   }
   return clientPromise;

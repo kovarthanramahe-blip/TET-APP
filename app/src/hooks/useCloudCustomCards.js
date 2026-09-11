@@ -117,6 +117,16 @@ export function useCloudCustomCards({ active, userId, baseState, baseUpdate }) {
     try {
       await cloudDeleteCustomCard(userId, id);
       setCustomCards(prev => (prev || []).filter(c => c.id !== id));
+      // Mirrors deleteCustomCardState()'s local-mode behavior: if the
+      // deleted card was the one currently shown revealed, removing it
+      // makes Flashcards.jsx's derived `currentCustomCard` fall through to
+      // the next due card automatically -- but customCardRevealed would
+      // otherwise stay true from the deleted card, showing that next
+      // card's answer immediately instead of requiring "Reveal answer"
+      // first (same bug class as gradeCustomCard's fix above).
+      if (baseState.customCardCurrentId === id) {
+        baseUpdate({ customCardCurrentId: null, customCardRevealed: false });
+      }
     } catch (e) {
       // The card was NOT actually deleted -- if a debounced edit was still
       // pending, resend it (same rationale as deleteNote()'s equivalent
@@ -128,7 +138,7 @@ export function useCloudCustomCards({ active, userId, baseState, baseUpdate }) {
       }
       setError(e?.message || 'Could not delete the flashcard.');
     }
-  }, [userId]);
+  }, [userId, baseState.customCardCurrentId, baseUpdate]);
 
   const gradeCustomCard = useCallback(async (id, g) => {
     const current = (customCards || []).find(c => c.id === id);

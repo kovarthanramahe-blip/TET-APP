@@ -544,7 +544,18 @@ export function addCustomCardState(s) {
 
 export function deleteCustomCardState(s, id) {
   const rest = s.customCards.filter(c => c.id !== id);
-  return { ...s, customCards: rest, customCardCurrentId: s.customCardCurrentId === id ? null : s.customCardCurrentId };
+  const wasCurrent = s.customCardCurrentId === id;
+  return {
+    ...s, customCards: rest,
+    customCardCurrentId: wasCurrent ? null : s.customCardCurrentId,
+    // If the deleted card was the one on screen, Flashcards.jsx's derived
+    // `currentCustomCard` falls through to the next due card automatically
+    // -- but without also resetting this, customCardRevealed would stay
+    // true from the deleted card, showing that next card's answer
+    // immediately instead of requiring "Reveal answer" first (same bug
+    // class as gradeCustomCard's cloud-mode fix).
+    customCardRevealed: wasCurrent ? false : s.customCardRevealed
+  };
 }
 
 export function buildQuiz(s) {

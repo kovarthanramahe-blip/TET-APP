@@ -760,11 +760,21 @@ describe('custom flashcards: dueCustomCards / gradeCustomCardState / addCustomCa
     expect(next.customCardTopicId).toBeNull();
   });
 
-  it('deleteCustomCardState removes the card and clears customCardCurrentId if it pointed there', () => {
-    const s = { customCards: [{ id: 'a' }, { id: 'b' }], customCardCurrentId: 'a' };
+  it('deleteCustomCardState removes the card and clears customCardCurrentId/customCardRevealed if it pointed there', () => {
+    const s = { customCards: [{ id: 'a' }, { id: 'b' }], customCardCurrentId: 'a', customCardRevealed: true };
     const next = deleteCustomCardState(s, 'a');
     expect(next.customCards.map(c => c.id)).toEqual(['b']);
     expect(next.customCardCurrentId).toBeNull();
+    // Otherwise the next due card (b) would render already revealed --
+    // skipping the reveal-then-grade step it never went through itself.
+    expect(next.customCardRevealed).toBe(false);
+  });
+
+  it('deleteCustomCardState leaves customCardRevealed untouched when deleting a card that is not the current one', () => {
+    const s = { customCards: [{ id: 'a' }, { id: 'b' }], customCardCurrentId: 'a', customCardRevealed: true };
+    const next = deleteCustomCardState(s, 'b');
+    expect(next.customCardCurrentId).toBe('a');
+    expect(next.customCardRevealed).toBe(true);
   });
 
   it('dueCustomCards / gradeCustomCardState mirror the seeded-deck SRS behavior', () => {

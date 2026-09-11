@@ -13,11 +13,13 @@ vi.mock('../lib/cloudData.js', () => ({
   cloudGradeCustomCard: vi.fn()
 }));
 
-function setup() {
+function setup(baseStateOverrides = {}) {
   const baseUpdate = vi.fn();
   const baseState = {
     customCards: [],
-    customCardFront: '', customCardBack: '', customCardCategory: '', customCardTopicId: null
+    customCardFront: '', customCardBack: '', customCardCategory: '', customCardTopicId: null,
+    customCardCurrentId: null,
+    ...baseStateOverrides
   };
   const utils = renderHook(() => useCloudCustomCards({ active: true, userId: 'user-1', baseState, baseUpdate }));
   return { ...utils, baseUpdate };
@@ -160,5 +162,37 @@ describe('useCloudCustomCards: gradeCustomCard resets reveal/current-card state 
     });
 
     expect(baseUpdate).toHaveBeenCalledWith({ customCardRevealed: false, customCardCurrentId: null });
+  });
+});
+
+// Same bug class as gradeCustomCard above, but for deletion: deleting the
+// card currently shown revealed used to leave customCardCurrentId/
+// customCardRevealed untouched, so the next due card Flashcards.jsx falls
+// through to would render already revealed.
+describe('useCloudCustomCards: deleteCustomCard resets reveal/current-card state when the deleted card was the current one', () => {
+  it('resets customCardCurrentId and customCardRevealed when deleting the current card', async () => {
+    const { result, baseUpdate } = setup({ customCardCurrentId: 'c1', customCardRevealed: true });
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    cloudData.cloudDeleteCustomCard.mockResolvedValue(undefined);
+
+    await act(async () => {
+      await result.current.actions.deleteCustomCard('c1');
+    });
+
+    expect(baseUpdate).toHaveBeenCalledWith({ customCardCurrentId: null, customCardRevealed: false });
+  });
+
+  it('does not touch reveal/current-card state when deleting a different card', async () => {
+    const { result, baseUpdate } = setup({ customCardCurrentId: 'c-other', customCardRevealed: true });
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    cloudData.cloudDeleteCustomCard.mockResolvedValue(undefined);
+
+    await act(async () => {
+      await result.current.actions.deleteCustomCard('c1');
+    });
+
+    expect(baseUpdate).not.toHaveBeenCalled();
   });
 });

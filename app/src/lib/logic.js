@@ -260,7 +260,16 @@ export function minutesByModule(s) {
 export function dailyMinutesSeries(s, days) {
   const series = [];
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000);
+    // Calendar arithmetic (setDate), not a raw 86400000ms subtraction --
+    // same reason offsetDateString() in dates.js uses setDate() instead of
+    // millisecond math: a fixed-24h shift can land on the wrong calendar
+    // day across a DST transition. The other two callers of this function
+    // (streakCount/goalStreakCount's sibling, weeklyConsistency) already
+    // went through this fix in Phase 36; this one still needs a real Date
+    // object back (for fmtWeekday() in Dashboard.jsx), not just an iso
+    // string, so it can't just delegate to offsetDateString() directly.
+    const d = new Date();
+    d.setDate(d.getDate() - i);
     const iso = toLocalDateString(d);
     series.push({ date: d, iso, mins: minutesOn(s, iso) });
   }

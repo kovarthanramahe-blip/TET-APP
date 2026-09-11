@@ -115,16 +115,28 @@ function QuizActive({ s, actions }) {
     };
   }) : [];
 
-  const nextLabel = s.qIndex + 1 >= quiz.length ? 'Submit test'
-    : (isMock ? 'Next question' : (s.revealed || !q || q.type === 'fib' || q.type === 'sa' ? 'Next question' : 'Skip'));
+  // A fib/sa answer needs an explicit "check" click (revealTextAnswer)
+  // before a further click can advance -- unlike mcq/tf, where picking an
+  // option reveals immediately. willReveal/isLastQuestion drive both the
+  // label below and nextQuestion()'s actual branching from the same two
+  // conditions, so the label can never again claim one action ("Next
+  // question"/"Submit test") while the click actually performs another
+  // (revealing feedback without moving on).
+  const willReveal = !isMock && q && (q.type === 'fib' || q.type === 'sa') && !s.revealed && s.answers[s.qIndex] !== undefined;
+  const isLastQuestion = s.qIndex + 1 >= quiz.length;
+  const nextLabel = willReveal ? 'Check answer'
+    : isLastQuestion ? 'Submit test'
+    : isMock ? 'Next question'
+    : q && (q.type === 'fib' || q.type === 'sa') ? (s.answers[s.qIndex] !== undefined ? 'Next question' : 'Skip')
+    : (s.revealed || !q ? 'Next question' : 'Skip');
   const lockNote = isMock ? 'Answers lock once selected.' : (q && (q.type === 'fib' || q.type === 'sa') ? 'Type an answer, then check it.' : '');
 
   const nextQuestion = () => {
-    if (!isMock && q && (q.type === 'fib' || q.type === 'sa') && !s.revealed && s.answers[s.qIndex] !== undefined) {
+    if (willReveal) {
       actions.revealTextAnswer();
       return;
     }
-    if (s.qIndex + 1 >= quiz.length) actions.submitQuiz();
+    if (isLastQuestion) actions.submitQuiz();
     else actions.advanceQuestion();
   };
 

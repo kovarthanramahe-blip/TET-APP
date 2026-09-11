@@ -471,6 +471,28 @@ describe('dailyMinutesSeries / daysStudiedInRange / weeklyConsistency', () => {
     expect(weeks[1].daysStudied).toBe(1);
     expect(weeks[0].daysStudied).toBe(1);
   });
+
+  // dailyMinutesSeries() used to build each day via `new Date(Date.now() -
+  // i*86400000)` -- a fixed 24h-per-day subtraction. That's fine for IST
+  // (this app's actual audience, no DST), but for a DST-observing timezone
+  // it can land on the wrong calendar day: America/New_York's 2026-03-08
+  // spring-forward (2am -> 3am) makes that day only 23 hours long, so
+  // subtracting a flat 24h*2 from local midnight on 2026-03-09 undershoots
+  // by an hour and skips 2026-03-08 entirely. Calendar arithmetic
+  // (setDate) -- the same fix Phase 36 already applied to
+  // streakCount/goalStreakCount/weeklyConsistency via offsetDateString() --
+  // doesn't have this failure mode.
+  describe('across a DST spring-forward (America/New_York)', () => {
+    const originalTZ = process.env.TZ;
+    beforeEach(() => { process.env.TZ = 'America/New_York'; });
+    afterEach(() => { process.env.TZ = originalTZ; });
+
+    it('walks three full, consecutive calendar days ending today -- none skipped or duplicated', () => {
+      vi.setSystemTime(new Date('2026-03-09T00:00:00'));
+      const series = dailyMinutesSeries({ sessions: [] }, 3);
+      expect(series.map(d => d.iso)).toEqual(['2026-03-07', '2026-03-08', '2026-03-09']);
+    });
+  });
 });
 
 describe('quizAverageScore / quizPassRate / quizTrend', () => {

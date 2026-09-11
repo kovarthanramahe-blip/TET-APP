@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 // Mocked the same way PwaUpdateBanner.test.jsx isolates itself from
 // virtual:pwa-register/react -- StorageWarning only ever reads one field
@@ -37,5 +37,26 @@ describe('StorageWarning', () => {
     render(<StorageWarning />);
     fireEvent.click(screen.getByText('Dismiss'));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  // saveFailed is recomputed on every state change, so storage can recover
+  // (a later save succeeds) and then fail again later in the same session
+  // -- a genuinely new failure, not a continuation of the one already
+  // dismissed. A dismissal must not silently suppress that new failure.
+  it('re-arms after dismissal once saving recovers, so a later failure shows the warning again', async () => {
+    saveFailed = true;
+    const { rerender } = render(<StorageWarning />);
+    fireEvent.click(screen.getByText('Dismiss'));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    // Saving recovers.
+    saveFailed = false;
+    rerender(<StorageWarning />);
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+
+    // A new, later failure.
+    saveFailed = true;
+    rerender(<StorageWarning />);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
   });
 });

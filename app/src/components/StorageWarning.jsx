@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../AppContext.jsx';
 
 // Phase 35: saveState() (see useAppState.js) can fail silently -- browser
@@ -15,6 +15,16 @@ import { useApp } from '../AppContext.jsx';
 export default function StorageWarning() {
   const { saveFailed } = useApp();
   const [dismissed, setDismissed] = useState(false);
+
+  // saveFailed is recomputed on every state change (useAppState.js), so
+  // storage can recover (a later save succeeds) and then fail again later
+  // in the same session -- a genuinely new failure, not a continuation of
+  // the one already dismissed. Without this, `dismissed` stayed true
+  // forever after the first "Dismiss" click, silently swallowing every
+  // subsequent failure for the rest of the session.
+  useEffect(() => {
+    if (!saveFailed) setDismissed(false);
+  }, [saveFailed]);
 
   if (!saveFailed || dismissed) return null;
 

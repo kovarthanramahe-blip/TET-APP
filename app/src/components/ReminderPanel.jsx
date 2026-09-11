@@ -15,7 +15,13 @@ export default function ReminderPanel() {
         actions.setRemindersEnabled(true);
         setDenied(false);
       } else {
-        setDenied(true);
+        // requestPermission() resolves 'denied' (site blocked -- browser
+        // settings really are the only way back) or 'default' (the user
+        // dismissed the prompt without choosing -- clicking the toggle
+        // again just re-prompts). Treating both as "denied" told a user
+        // who'd merely dismissed the prompt to go dig through browser
+        // settings for a permission that was never actually set.
+        setDenied(permission === 'denied');
       }
     } else {
       actions.setRemindersEnabled(false);

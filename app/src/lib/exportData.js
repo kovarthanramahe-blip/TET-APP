@@ -223,7 +223,11 @@ const FIELD_VALIDATORS = {
   showQuotes: v => typeof v === 'boolean',
   examDate: isSafeStringOrNull,
   dailyGoalMinutes: isFiniteNumber,
-  remindersEnabled: v => typeof v === 'boolean'
+  remindersEnabled: v => typeof v === 'boolean',
+  reminderTime: isSafeString,
+  reminderDays: v => Array.isArray(v) && v.length <= 7 && v.every(n => Number.isInteger(n) && n >= 0 && n <= 6),
+  endOfDayNudgeEnabled: v => typeof v === 'boolean',
+  endOfDayNudgeTime: isSafeString
 };
 
 // Builds a brand-new plain object containing only recognized keys with

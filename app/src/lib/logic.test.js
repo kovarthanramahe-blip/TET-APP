@@ -11,7 +11,7 @@ import {
   partForModule, modulePerformance,
   daysUntilExam, todayGoalProgress, weeklyGoalProgress,
   seededDeckProgress, customDeckProgress,
-  reminderReasons, confColor, confName, masteredCount,
+  reminderReasons, isReminderDue, confColor, confName, masteredCount,
   cardState, dueCards, bestScore, quoteFor,
   nextIntervalFor, applySrsGrade, gradeState,
   dueCustomCards, gradeCustomCardState, addCustomCardState, deleteCustomCardState,
@@ -638,6 +638,29 @@ describe('reminderReasons', () => {
     };
     const reasons = reminderReasons(s);
     expect(reasons.some(r => r.includes('flashcard'))).toBe(true);
+  });
+});
+
+describe('isReminderDue', () => {
+  // 2026-06-15 is a Monday (getDay() === 1).
+  it('is false before the scheduled time, true at and after it', () => {
+    const before = new Date('2026-06-15T13:29:00');
+    const atTime = new Date('2026-06-15T13:30:00');
+    const after = new Date('2026-06-15T18:00:00');
+    expect(isReminderDue(before, '13:30', [0, 1, 2, 3, 4, 5, 6])).toBe(false);
+    expect(isReminderDue(atTime, '13:30', [0, 1, 2, 3, 4, 5, 6])).toBe(true);
+    expect(isReminderDue(after, '13:30', [0, 1, 2, 3, 4, 5, 6])).toBe(true);
+  });
+
+  it('is false on a day not in the allowed list, even past the scheduled time', () => {
+    const monday8pm = new Date('2026-06-15T20:00:00');
+    expect(isReminderDue(monday8pm, '18:00', [0, 6])).toBe(false); // only Sun/Sat allowed
+  });
+
+  it('treats an empty or missing days list as "every day"', () => {
+    const monday8pm = new Date('2026-06-15T20:00:00');
+    expect(isReminderDue(monday8pm, '18:00', [])).toBe(true);
+    expect(isReminderDue(monday8pm, '18:00', undefined)).toBe(true);
   });
 });
 

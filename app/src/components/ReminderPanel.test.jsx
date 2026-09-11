@@ -68,3 +68,47 @@ describe('ReminderPanel: distinguishes a dismissed prompt from an actually block
     expect(queryByText(/blocked for this site/)).not.toBeInTheDocument();
   });
 });
+
+// Scheduling layer on top of the plain on/off toggle: a time of day, which
+// days of the week, and a separate opt-in end-of-day nudge.
+describe('ReminderPanel: schedule controls only appear once reminders are on', () => {
+  it('hides the schedule controls while reminders are off', () => {
+    const { queryByLabelText, queryByText } = renderPanel();
+    expect(queryByLabelText('Remind me at')).not.toBeInTheDocument();
+    expect(queryByText(/nudge me at end of day/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the time picker and day toggles once enabled, all days on by default', async () => {
+    requestNotificationPermission.mockResolvedValue('granted');
+    const { getByText, findByLabelText, getByRole } = renderPanel();
+    fireEvent.click(getByText('Study reminders'));
+
+    const timeInput = await findByLabelText('Remind me at');
+    expect(timeInput.value).toBe('18:00');
+    expect(getByRole('button', { name: /^Mon/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('toggling a day off, then on, round-trips reminderDays', async () => {
+    requestNotificationPermission.mockResolvedValue('granted');
+    const { getByText, findByRole } = renderPanel();
+    fireEvent.click(getByText('Study reminders'));
+
+    const monBtn = await findByRole('button', { name: /^Mon/ });
+    fireEvent.click(monBtn);
+    expect(monBtn).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(monBtn);
+    expect(monBtn).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('reveals the end-of-day nudge time picker only once its checkbox is checked', async () => {
+    requestNotificationPermission.mockResolvedValue('granted');
+    const { getByText, findByLabelText, queryByLabelText } = renderPanel();
+    fireEvent.click(getByText('Study reminders'));
+
+    const nudgeCheckbox = await findByLabelText(/nudge me at end of day/i);
+    expect(queryByLabelText('End-of-day nudge at')).not.toBeInTheDocument();
+
+    fireEvent.click(nudgeCheckbox);
+    expect(await findByLabelText('End-of-day nudge at')).toBeInTheDocument();
+  });
+});

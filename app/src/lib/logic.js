@@ -48,7 +48,15 @@ export function seedState() {
     confirmReset: false,
     pomodoroMinutes: 25, breakMinutes: 5, showQuotes: true,
     examDate: null, dailyGoalMinutes: 60,
-    remindersEnabled: false
+    // Phase: reminder scheduling. reminderTime/reminderDays/end-of-day nudge
+    // fields only matter once remindersEnabled is true, but always carry a
+    // real default so turning it on for the first time doesn't need its own
+    // separate initialization step. reminderDays uses Date.getDay()'s own
+    // 0 (Sun) .. 6 (Sat) numbering; all seven by default keeps behavior
+    // equivalent to "every day", matching what remindersEnabled alone used
+    // to mean before a schedule existed at all.
+    remindersEnabled: false, reminderTime: '18:00', reminderDays: [0, 1, 2, 3, 4, 5, 6],
+    endOfDayNudgeEnabled: false, endOfDayNudgeTime: '21:00'
   };
 }
 
@@ -422,6 +430,22 @@ export function reminderReasons(s) {
   if (dueCardCount > 0) reasons.push(`${dueCardCount} flashcard${dueCardCount > 1 ? 's are' : ' is'} ready for review.`);
 
   return reasons;
+}
+
+// Pure "has the user's chosen reminder time for today arrived yet" check --
+// takes `now` as a parameter (rather than calling `new Date()` itself) so
+// it's deterministically testable with a fixed clock, the same reason
+// dates.js's own functions take an explicit date where it matters.
+// `days` is the reminderDays array (Date.getDay() numbering, 0=Sun..6=Sat);
+// an empty/missing array is treated as "every day" rather than "never",
+// since that's the meaning a user who's never touched the day picker
+// expects from just turning reminders on.
+export function isReminderDue(now, timeStr, days) {
+  if (days && days.length && !days.includes(now.getDay())) return false;
+  const [h, m] = String(timeStr || '00:00').split(':').map(Number);
+  const scheduled = new Date(now);
+  scheduled.setHours(h || 0, m || 0, 0, 0);
+  return now >= scheduled;
 }
 
 // Phase 25: returns theme-aware CSS variables (see styles.css) rather than

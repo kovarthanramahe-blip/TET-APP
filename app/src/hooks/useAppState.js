@@ -114,6 +114,14 @@ export function useAppState() {
     setExamDate: (v) => update({ examDate: v || null }),
     setDailyGoalMinutes: (v) => update({ dailyGoalMinutes: v }),
     setRemindersEnabled: (v) => update({ remindersEnabled: v }),
+    setReminderTime: (v) => update({ reminderTime: v }),
+    toggleReminderDay: (day) => update(s => ({
+      reminderDays: s.reminderDays.includes(day)
+        ? s.reminderDays.filter(d => d !== day)
+        : [...s.reminderDays, day].sort((a, b) => a - b)
+    })),
+    setEndOfDayNudgeEnabled: (v) => update({ endOfDayNudgeEnabled: v }),
+    setEndOfDayNudgeTime: (v) => update({ endOfDayNudgeTime: v }),
 
     cycleConfidence: (key, current) => update(s => ({ confidence: { ...s.confidence, [key]: (current + 1) % 4 } })),
 

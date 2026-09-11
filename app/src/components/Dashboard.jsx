@@ -61,9 +61,20 @@ export default function Dashboard() {
   // local, ephemeral UI state -- not synced to the cloud or persisted --
   // since it's a rarely-used, low-stakes choice that resets to "all notes"
   // on reload.
-  const [selectedNoteIds, setSelectedNoteIds] = useState(() => new Set(s.notes.map(n => n.id)));
+  //
+  // Tracks DESELECTED ids, not selected ones -- for a signed-in user,
+  // s.notes at the moment this component first mounts is still the
+  // pre-fetch fallback (useCloudTasksAndNotes.js's cloud notes start out
+  // null and briefly fall back to base.state.notes); the real list arrives
+  // an instant later. A "selected" whitelist seeded from that first,
+  // incomplete render would never grow to include the real notes once
+  // they load, silently leaving every note unchecked. A "deselected"
+  // blacklist has no such gap: any note absent from it -- new, late-
+  // loading, or just added -- is selected by default with no resync effect
+  // needed.
+  const [deselectedNoteIds, setDeselectedNoteIds] = useState(() => new Set());
   const toggleNoteSelected = (id) => {
-    setSelectedNoteIds(prev => {
+    setDeselectedNoteIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
@@ -145,7 +156,7 @@ export default function Dashboard() {
   const performance = modulePerformance(s, quizByPart);
   const weakestAreas = performance.slice(0, 2);
   const strongestAreas = performance.slice(-2).reverse();
-  const selectedNotes = s.notes.filter(n => selectedNoteIds.has(n.id));
+  const selectedNotes = s.notes.filter(n => !deselectedNoteIds.has(n.id));
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
@@ -445,7 +456,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: 'var(--space-4)' }}>
             {s.notes.map(n => (
               <label key={n.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '13px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={selectedNoteIds.has(n.id)} onChange={() => toggleNoteSelected(n.id)} />
+                <input type="checkbox" checked={!deselectedNoteIds.has(n.id)} onChange={() => toggleNoteSelected(n.id)} />
                 {n.title || 'Untitled note'}
               </label>
             ))}

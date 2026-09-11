@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { AppProvider } from '../AppContext.jsx';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { AppProvider, useApp } from '../AppContext.jsx';
 import Dashboard from './Dashboard.jsx';
 
 // Smoke coverage for the wiring, not a re-test of logic.js's pure functions
@@ -54,5 +54,37 @@ describe('Dashboard', () => {
     expect(printOnly).not.toBeNull();
     expect(printOnly.parentElement).toBe(document.body);
     expect(printOnly.textContent).toContain('Revision Sheet');
+  });
+
+  // The revision-sheet selection used to be a "selected ids" whitelist
+  // seeded once, on mount, from whatever s.notes was at that instant. For a
+  // signed-in user, that's the pre-fetch fallback -- useCloudTasksAndNotes.js's
+  // cloud notes start out null and briefly fall back to base.state.notes,
+  // with the real list arriving a moment later. Any note that appears
+  // AFTER that first render (a cloud note loading in late, or simply a new
+  // note added) was never in the whitelist and rendered unchecked despite
+  // the feature's whole point being "all notes pre-checked by default".
+  // Adding a note via the real addNote() action reproduces the same
+  // "a note appears after Dashboard has already mounted" shape without
+  // needing to mock Supabase.
+  it('pre-checks a note that appears only after Dashboard has already mounted', () => {
+    function AddNoteButton() {
+      const { actions } = useApp();
+      return <button onClick={actions.addNote}>add note for test</button>;
+    }
+    const { getByText, getAllByText } = render(
+      <AppProvider>
+        <AddNoteButton />
+        <Dashboard />
+      </AppProvider>
+    );
+
+    fireEvent.click(getByText('add note for test'));
+
+    const matches = getAllByText('New note');
+    const label = matches.map(el => el.closest('label')).find(Boolean);
+    expect(label).not.toBeNull();
+    const checkbox = label.querySelector('input[type="checkbox"]');
+    expect(checkbox.checked).toBe(true);
   });
 });

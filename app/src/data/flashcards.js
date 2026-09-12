@@ -29,5 +29,23 @@ export const CARDS = [
   ['LSRW skills', 'Listening · Speaking · Reading · Writing', 'English'],
   ['Kidney — primary function', 'Filters blood and produces urine', 'Subject — EVS'],
   ['Photosynthesis — location', 'Chloroplasts of leaf cells', 'Subject — EVS'],
-  ['Haryana folk dance', 'Khoria — a traditional folk dance of Haryana', 'Haryana GK']
+  ['Haryana folk dance', 'Khoria — a traditional folk dance of Haryana', 'Haryana GK'],
+
+  // Phase 39: seed bank expansion, batch 2. Appended only -- see batch 1's
+  // comment above on why CARDS is never reordered.
+  ['Reliability vs validity', 'Reliability = consistency of scores · Validity = whether it measures what it claims to', 'Assessment'],
+  ['Metacognition', "Thinking about one's own thinking and learning processes", 'Child Development'],
+  ['NEP 2020 — senior secondary curriculum', 'Removes rigid Science/Commerce/Arts streams; flexible, multidisciplinary subject choice', 'Policy'],
+  ['गुण सन्धि — उदाहरण', 'अ/आ + उ/ऊ = ओ — जैसे सूर्य + उदय = सूर्योदय', 'Hindi'],
+  ['अव्ययीभाव समास', 'पहला पद (अव्यय) प्रधान — जैसे यथाशक्ति (शक्ति के अनुसार)', 'Hindi'],
+  ['द्विगु समास', 'पहला पद संख्यावाचक — जैसे त्रिभुज (तीन भुजाओं का समूह)', 'Hindi'],
+  ['अनुप्रास अलंकार', 'एक ही व्यंजन ध्वनि की बार-बार आवृत्ति', 'Hindi'],
+  ['Type 1 conditional — formula', 'If + present simple, ... will + base verb (real/possible future)', 'English'],
+  ['Sequence of tenses — reported speech', "Present continuous → past continuous when the reporting verb is past: 'I am preparing' → he said he was preparing", 'English'],
+  ['Little vs few', "'Little' — uncountable nouns · 'Few' — countable nouns", 'English'],
+  ['Personification — definition', "Giving human qualities to non-human things, e.g. 'the wind whispered'", 'English'],
+  ['Beti Bachao Beti Padhao', 'Launched 2015 from Panipat, Haryana', 'Haryana GK'],
+  ['Non-Cooperation Movement', 'Launched by Gandhi in 1920', 'History'],
+  ["India's First Five-Year Plan", '1951–56', 'Economics'],
+  ['Parliament of India — two houses', 'Lok Sabha (lower house) and Rajya Sabha (upper house), plus the President', 'Polity']
 ];
